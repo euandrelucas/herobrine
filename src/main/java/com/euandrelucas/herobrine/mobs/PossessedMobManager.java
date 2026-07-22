@@ -15,18 +15,20 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Sheep;
+
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.entity.EntityCombustEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 /**
- * Gerencia mobs possuídos (animais e monstros), Netherbrine e a receita do item ritual de derrota.
+ * Gerencia mobs possuídos (animais e monstros), imunidade ao sol, sem drops de carne e receita do ritual.
  */
 public class PossessedMobManager implements Listener {
 
@@ -39,20 +41,39 @@ public class PossessedMobManager implements Listener {
         registerDefeatRecipe();
     }
 
-    /**
-     * 5.2: Possui um mob passivo próximo.
-     */
     public void possessEntity(LivingEntity entity) {
         if (entity == null) return;
         entity.setCustomName("§c" + entity.getType().name() + " Possuído(a)");
         entity.setCustomNameVisible(true);
-        entity.setGlowing(true);
+        entity.setGlowing(true); // Efeito visual de olhos/corpo brilhante
         entity.getPersistentDataContainer().set(possessedKey, PersistentDataType.BYTE, (byte) 1);
     }
 
     public boolean isPossessed(Entity entity) {
         if (entity == null) return false;
         return entity.getPersistentDataContainer().has(possessedKey, PersistentDataType.BYTE);
+    }
+
+    /**
+     * Mobs possuídos do tipo undead (Zumbis / Esqueletos) NÃO queimam no sol!
+     */
+    @EventHandler
+    public void onEntityCombust(EntityCombustEvent event) {
+        if (isPossessed(event.getEntity())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * Mobs possuídos (vacas, porcos, galinhas) NÃO dropam carne nem itens normais ao morrer!
+     */
+    @EventHandler
+    public void onEntityDeath(EntityDeathEvent event) {
+        if (isPossessed(event.getEntity())) {
+            event.getDrops().clear();
+            event.setDroppedExp(0);
+            event.getEntity().getWorld().spawnParticle(Particle.SMOKE_LARGE, event.getEntity().getLocation(), 20, 0.3, 0.5, 0.3, 0.05);
+        }
     }
 
     @EventHandler
@@ -64,7 +85,6 @@ public class PossessedMobManager implements Listener {
             double chance = plugin.getConfig().getDouble("custom-mobs.possessed-monsters.spawn-replace-chance", 0.10);
             if (Math.random() < chance) {
                 possessEntity(entity);
-                // Aumenta vida e dano
                 if (entity.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
                     double current = entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
                     entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(current * 1.5);
@@ -80,7 +100,6 @@ public class PossessedMobManager implements Listener {
             Entity victim = event.getEntity();
             Player player = (Player) event.getDamager();
 
-            // Habilidades únicas de animais possuídos
             if (victim instanceof Cow) {
                 player.setVelocity(player.getLocation().getDirection().multiply(-1.5).setY(0.5));
             } else if (victim instanceof Sheep) {
@@ -93,10 +112,6 @@ public class PossessedMobManager implements Listener {
         }
     }
 
-    /**
-     * 5.6: Receita de Crafting do Item de Banimento Definitivo.
-     * Maçã dourada encantada + Estrela do Nether + Cabeça de Dragão + Blocos de Diamante.
-     */
     private void registerDefeatRecipe() {
         ItemStack item = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta = item.getItemMeta();

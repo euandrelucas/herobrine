@@ -11,12 +11,12 @@ plugin:
 # 1. SISTEMA DE INVOCAÇÃO E SPAWN AMBIENTE
 spawn:
   enabled: true
-  # Intervalo entre tentativas de spawn em minutos
-  interval-minutes: 10
+  # Intervalo entre tentativas de spawn em minutos (mais frequente)
+  interval-minutes: 3
   # Variação aleatória em minutos (+/-)
-  random-variance-minutes: 3
+  random-variance-minutes: 1
   # Chance percentual de manifestação a cada intervalo (0.0 a 1.0)
-  chance: 0.45
+  chance: 0.75
   # Distância mínima do jogador para spawn (em blocos)
   min-distance: 15
   # Distância máxima do jogador para spawn (em blocos)
