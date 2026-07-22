@@ -45,7 +45,7 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
     private final Set<UUID> possessedStaff = new HashSet<>();
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
-            "spawn", "banish", "jumpscare", "disarm", "swarm", "kidnap", "possess", "clones", "jukebox", "fear", "setfear", "frequency", "state", "reload", "restorenether", "help"
+            "spawn", "banish", "jumpscare", "disarm", "swarm", "kidnap", "possess", "possessplayer", "clones", "jukebox", "fear", "setfear", "frequency", "state", "reload", "restorenether", "help"
     );
 
     public HerobrineCommand(HerobrinePlugin plugin) {
@@ -88,6 +88,8 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
                 return handleKidnap(sender, args);
             case "possess":
                 return handlePossess(sender, args);
+            case "possessplayer":
+                return handlePossessPlayer(sender, args);
             case "clones":
                 return handleClones(sender, args);
             case "jukebox":
@@ -139,7 +141,6 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
         Location loc = target.getLocation().add(target.getLocation().getDirection().multiply(-10));
         boolean success = mobManager.spawnHerobrine(world, loc, target);
 
-        // Ideia 5: Céu de Tempestade Sombria
         world.setStorm(true);
         world.setThundering(true);
 
@@ -153,9 +154,6 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    /**
-     * Ideia 4: Modo Evento / Staff Possuído (/hb possess <admin>).
-     */
     private boolean handlePossess(CommandSender sender, String[] args) {
         Player target = (args.length > 1) ? Bukkit.getPlayer(args[1]) : (sender instanceof Player ? (Player) sender : null);
         if (target == null) {
@@ -190,6 +188,19 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
             target.getWorld().spawnParticle(Particle.FLAME, target.getLocation(), 30, 0.5, 0.5, 0.5, 0.1);
             sender.sendMessage(messagesManager.getFormattedMessage("possess.enabled", ph));
         }
+        return true;
+    }
+
+    /**
+     * Posse de 1 minuto sobre um jogador normal pelo Herobrine.
+     */
+    private boolean handlePossessPlayer(CommandSender sender, String[] args) {
+        Player target = getTargetPlayer(sender, args);
+        if (target == null) return true;
+
+        plugin.getPlayerPossessionManager().possessPlayer(target);
+        plugin.getFearManager().addFear(target, 30);
+        sender.sendMessage(MessagesManager.colorize("&aHerobrine tomou posse do jogador &f" + target.getName() + " &apor 1 minuto!"));
         return true;
     }
 
@@ -368,7 +379,8 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessagesManager.colorize("&f/hb disarm <jogador> &7- Susto que dropa TODO o inventário."));
         sender.sendMessage(MessagesManager.colorize("&f/hb swarm <jogador> &7- Spawna manada de mobs encarando."));
         sender.sendMessage(MessagesManager.colorize("&f/hb kidnap <jogador> &7- Sequestra o jogador para sala de bedrock."));
-        sender.sendMessage(MessagesManager.colorize("&f/hb possess [admin] &7- Transforma staff em Herobrine (Modo Evento)."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb possess [admin] &7- Transforma staff em Herobrine."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb possessplayer <jogador> &7- Posse de 1 min pelo Herobrine."));
         sender.sendMessage(MessagesManager.colorize("&f/hb clones &7- Invoca clones ilusórios do Herobrine."));
         sender.sendMessage(MessagesManager.colorize("&f/hb jukebox <jogador> &7- Ativa toca-discos amaldiçoado."));
         sender.sendMessage(MessagesManager.colorize("&f/hb fear <jogador> &7- Exibe o nível de medo do jogador."));
