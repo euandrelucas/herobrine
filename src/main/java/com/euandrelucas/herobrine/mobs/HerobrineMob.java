@@ -4,8 +4,9 @@ import com.euandrelucas.herobrine.ai.HerobrineStateMachine;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
@@ -13,11 +14,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Entidade wrapper do Herobrine no mundo.
- * Nunca nada, não usa veículos nem portais (teleporta ou desaparece).
+ * Suporta clones ilusórios, orientação, pegadas de redstone e detecção de olhar.
  */
 public class HerobrineMob {
 
@@ -27,6 +30,7 @@ public class HerobrineMob {
     private final Player targetPlayer;
     private final HerobrineStateMachine stateMachine;
     private Zombie entityHandle;
+    private final List<Zombie> illusionClones = new ArrayList<>();
     private boolean isAlive;
 
     public HerobrineMob(World world, Location spawnLocation, Player targetPlayer) {
@@ -41,7 +45,6 @@ public class HerobrineMob {
     public boolean spawn() {
         if (world == null || currentLocation == null) return false;
 
-        // Spawna uma entidade Zombie reskinnada de forma totalmente compatível com a API Bukkit
         Zombie zombie = (Zombie) world.spawnEntity(currentLocation, EntityType.ZOMBIE);
         zombie.setCustomName("§cHerobrine");
         zombie.setCustomNameVisible(true);
@@ -49,7 +52,6 @@ public class HerobrineMob {
         zombie.setCanPickupItems(false);
         zombie.setPersistent(false);
 
-        // Equipamento visual (cabeça de Steve)
         ItemStack steveHead = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) steveHead.getItemMeta();
         if (meta != null) {
@@ -66,6 +68,68 @@ public class HerobrineMob {
         return true;
     }
 
+    /**
+     * Ideia 1: Deixa uma trilha temporária de tochas de redstone por onde caminha.
+     */
+    public void leaveRedstoneFootprint() {
+        if (!isAlive || entityHandle == null) return;
+        Location loc = entityHandle.getLocation();
+        if (loc.getBlock().getType() == Material.AIR) {
+            loc.getBlock().setType(Material.REDSTONE_TORCH);
+            Bukkit.getScheduler().runTaskLater(com.euandrelucas.herobrine.core.HerobrinePlugin.getInstance(), () -> {
+                if (loc.getBlock().getType() == Material.REDSTONE_TORCH) {
+                    loc.getBlock().setType(Material.AIR);
+                    world.spawnParticle(Particle.SMOKE_NORMAL, loc, 5);
+                }
+            }, 160L); // Some após 8 segundos
+        }
+    }
+
+    /**
+     * Ideia 2: Invoca 3 clones de ilusão ao redor do jogador.
+     */
+    public void spawnIllusionClones() {
+        if (!isAlive || targetPlayer == null) return;
+        Location pLoc = targetPlayer.getLocation();
+
+        for (int i = 0; i < 3; i++) {
+            double angle = (2 * Math.PI / 3) * i;
+            double x = pLoc.getX() + 5 * Math.cos(angle);
+            double z = pLoc.getZ() + 5 * Math.sin(angle);
+            Location cloneLoc = new Location(world, x, pLoc.getY(), z);
+
+            Zombie clone = (Zombie) world.spawnEntity(cloneLoc, EntityType.ZOMBIE);
+            clone.setCustomName("§cHerobrine");
+            clone.setCustomNameVisible(true);
+            clone.setBaby(false);
+            clone.setGlowing(true);
+
+            ItemStack steveHead = new ItemStack(Material.PLAYER_HEAD);
+            SkullMeta meta = (SkullMeta) steveHead.getItemMeta();
+            if (meta != null) {
+                meta.setOwningPlayer(Bukkit.getOfflinePlayer("Steve"));
+                steveHead.setItemMeta(meta);
+            }
+            if (clone.getEquipment() != null) {
+                clone.getEquipment().setHelmet(steveHead);
+            }
+
+            illusionClones.add(clone);
+        }
+    }
+
+    public boolean isIllusionClone(Zombie zombie) {
+        return illusionClones.contains(zombie);
+    }
+
+    public void removeIllusionClone(Zombie zombie) {
+        if (illusionClones.remove(zombie)) {
+            zombie.getWorld().spawnParticle(Particle.SMOKE_LARGE, zombie.getLocation(), 20);
+            zombie.getWorld().playSound(zombie.getLocation(), Sound.ENTITY_WITCH_CELEBRATE, 1.0f, 0.5f);
+            zombie.remove();
+        }
+    }
+
     public void updateOrientationTowardsTarget() {
         if (!isAlive || entityHandle == null || targetPlayer == null) return;
 
@@ -77,11 +141,13 @@ public class HerobrineMob {
             mobLoc.setDirection(direction);
             entityHandle.teleport(mobLoc);
         }
+
+        // Deixa pegadas ocasionais de redstone
+        if (Math.random() < 0.15) {
+            leaveRedstoneFootprint();
+        }
     }
 
-    /**
-     * Verifica se o jogador está olhando diretamente para a posição do Herobrine.
-     */
     public boolean isLookedAtBy(Player player) {
         if (!isAlive || entityHandle == null || player == null) return false;
 
@@ -89,7 +155,6 @@ public class HerobrineMob {
         Vector toEntity = entityHandle.getEyeLocation().toVector().subtract(eye.toVector()).normalize();
         Vector playerDirection = eye.getDirection().normalize();
 
-        // Produto escalar para verificar ângulo de visão (cos(theta) > 0.85 = ~30 graus)
         double dot = playerDirection.dot(toEntity);
         return dot > 0.85;
     }
@@ -98,6 +163,12 @@ public class HerobrineMob {
         if (entityHandle != null && entityHandle.isValid()) {
             entityHandle.remove();
         }
+        for (Zombie clone : illusionClones) {
+            if (clone != null && clone.isValid()) {
+                clone.remove();
+            }
+        }
+        illusionClones.clear();
         this.isAlive = false;
     }
 

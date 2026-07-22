@@ -8,20 +8,28 @@ import com.euandrelucas.herobrine.mobs.HerobrineMob;
 import com.euandrelucas.herobrine.mobs.MobManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -34,9 +42,10 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
     private final ConfigManager configManager;
     private final MessagesManager messagesManager;
     private final FearManager fearManager;
+    private final Set<UUID> possessedStaff = new HashSet<>();
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
-            "spawn", "banish", "jumpscare", "disarm", "swarm", "kidnap", "fear", "setfear", "frequency", "state", "reload", "restorenether", "help"
+            "spawn", "banish", "jumpscare", "disarm", "swarm", "kidnap", "possess", "clones", "jukebox", "fear", "setfear", "frequency", "state", "reload", "restorenether", "help"
     );
 
     public HerobrineCommand(HerobrinePlugin plugin) {
@@ -77,6 +86,12 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
                 return handleSwarm(sender, args);
             case "kidnap":
                 return handleKidnap(sender, args);
+            case "possess":
+                return handlePossess(sender, args);
+            case "clones":
+                return handleClones(sender, args);
+            case "jukebox":
+                return handleJukebox(sender, args);
             case "fear":
                 return handleFear(sender, args);
             case "setfear":
@@ -124,6 +139,10 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
         Location loc = target.getLocation().add(target.getLocation().getDirection().multiply(-10));
         boolean success = mobManager.spawnHerobrine(world, loc, target);
 
+        // Ideia 5: Céu de Tempestade Sombria
+        world.setStorm(true);
+        world.setThundering(true);
+
         Map<String, String> ph = new HashMap<>();
         ph.put("player", target.getName());
         ph.put("world", world.getName());
@@ -131,6 +150,68 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
         if (success) {
             sender.sendMessage(messagesManager.getFormattedMessage("spawn.success", ph));
         }
+        return true;
+    }
+
+    /**
+     * Ideia 4: Modo Evento / Staff Possuído (/hb possess <admin>).
+     */
+    private boolean handlePossess(CommandSender sender, String[] args) {
+        Player target = (args.length > 1) ? Bukkit.getPlayer(args[1]) : (sender instanceof Player ? (Player) sender : null);
+        if (target == null) {
+            sender.sendMessage(MessagesManager.colorize("&cUso: /herobrine possess [admin]"));
+            return true;
+        }
+
+        UUID uuid = target.getUniqueId();
+        Map<String, String> ph = new HashMap<>();
+        ph.put("player", target.getName());
+
+        if (possessedStaff.contains(uuid)) {
+            possessedStaff.remove(uuid);
+            target.setCustomName(target.getName());
+            target.setCustomNameVisible(false);
+            target.setGlowing(false);
+            sender.sendMessage(messagesManager.getFormattedMessage("possess.disabled", ph));
+        } else {
+            possessedStaff.add(uuid);
+            target.setCustomName("§cHerobrine");
+            target.setCustomNameVisible(true);
+            target.setGlowing(true);
+
+            ItemStack steveHead = new ItemStack(Material.PLAYER_HEAD);
+            SkullMeta meta = (SkullMeta) steveHead.getItemMeta();
+            if (meta != null) {
+                meta.setOwningPlayer(Bukkit.getOfflinePlayer("Steve"));
+                steveHead.setItemMeta(meta);
+            }
+            target.getInventory().setHelmet(steveHead);
+
+            target.getWorld().spawnParticle(Particle.FLAME, target.getLocation(), 30, 0.5, 0.5, 0.5, 0.1);
+            sender.sendMessage(messagesManager.getFormattedMessage("possess.enabled", ph));
+        }
+        return true;
+    }
+
+    private boolean handleClones(CommandSender sender, String[] args) {
+        World world = (sender instanceof Player) ? ((Player) sender).getWorld() : Bukkit.getWorlds().get(0);
+        HerobrineMob mob = mobManager.getActiveMob(world);
+
+        if (mob != null && mob.isAlive()) {
+            mob.spawnIllusionClones();
+            sender.sendMessage(MessagesManager.colorize("&aClones de ilusão do Herobrine invocados!"));
+        } else {
+            sender.sendMessage(MessagesManager.colorize("&cHerobrine precisa estar ativo no mundo para invocar clones."));
+        }
+        return true;
+    }
+
+    private boolean handleJukebox(CommandSender sender, String[] args) {
+        Player target = getTargetPlayer(sender, args);
+        if (target == null) return true;
+
+        plugin.getHorrorManager().triggerHauntedJukebox(target);
+        sender.sendMessage(MessagesManager.colorize("&aToca-discos amaldiçoado ativado perto de &f" + target.getName()));
         return true;
     }
 
@@ -186,7 +267,7 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
 
         plugin.getHorrorManager().triggerDisarmJumpscare(target);
         plugin.getFearManager().addFear(target, 20);
-        sender.sendMessage(MessagesManager.colorize("&aDisarm Jumpscare disparado contra &f" + target.getName()));
+        sender.sendMessage(MessagesManager.colorize("&aDisarm Jumpscare (Drop Total) disparado contra &f" + target.getName()));
         return true;
     }
 
@@ -284,9 +365,12 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessagesManager.colorize("&f/hb spawn [jogador] &7- Força manifestação do Herobrine."));
         sender.sendMessage(MessagesManager.colorize("&f/hb banish [mundo] &7- Remove o Herobrine do mundo."));
         sender.sendMessage(MessagesManager.colorize("&f/hb jumpscare <jogador> &7- Dispara susto em um jogador."));
-        sender.sendMessage(MessagesManager.colorize("&f/hb disarm <jogador> &7- Jumpscare que faz soltar item da mão."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb disarm <jogador> &7- Susto que dropa TODO o inventário."));
         sender.sendMessage(MessagesManager.colorize("&f/hb swarm <jogador> &7- Spawna manada de mobs encarando."));
         sender.sendMessage(MessagesManager.colorize("&f/hb kidnap <jogador> &7- Sequestra o jogador para sala de bedrock."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb possess [admin] &7- Transforma staff em Herobrine (Modo Evento)."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb clones &7- Invoca clones ilusórios do Herobrine."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb jukebox <jogador> &7- Ativa toca-discos amaldiçoado."));
         sender.sendMessage(MessagesManager.colorize("&f/hb fear <jogador> &7- Exibe o nível de medo do jogador."));
         sender.sendMessage(MessagesManager.colorize("&f/hb setfear <jogador> <0-100> &7- Define o nível de medo."));
         sender.sendMessage(MessagesManager.colorize("&f/hb frequency <minutos> &7- Ajusta intervalo de spawn."));

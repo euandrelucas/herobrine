@@ -5,8 +5,12 @@ import com.euandrelucas.herobrine.config.MessagesManager;
 import com.euandrelucas.herobrine.core.HerobrinePlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Jukebox;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -26,7 +30,7 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * Gerencia efeitos de terror psicológico, pesadelos, disarm jumpscares (drop completo do inventário) e manada de mobs encarando.
+ * Gerencia efeitos de terror psicológico, pesadelos, disarm jumpscares, manada de mobs e toca-discos amaldiçoado.
  */
 public class PsychologicalHorrorManager implements Listener {
 
@@ -39,6 +43,33 @@ public class PsychologicalHorrorManager implements Listener {
         this.plugin = plugin;
         this.configManager = plugin.getConfigManager();
         this.messagesManager = plugin.getMessagesManager();
+    }
+
+    /**
+     * Ideia 3: Toca-Discos Amaldiçoado. Toca o disco 11 ou 13 distorcido em um toca-discos próximo ao jogador.
+     */
+    public void triggerHauntedJukebox(Player player) {
+        if (player == null || !player.isOnline()) return;
+
+        Location pLoc = player.getLocation();
+        World world = pLoc.getWorld();
+        if (world == null) return;
+
+        for (int x = -10; x <= 10; x++) {
+            for (int y = -3; y <= 3; y++) {
+                for (int z = -10; z <= 10; z++) {
+                    Block block = world.getBlockAt(pLoc.clone().add(x, y, z));
+                    if (block.getType() == Material.JUKEBOX) {
+                        Jukebox jukebox = (Jukebox) block.getState();
+                        jukebox.setPlaying(Material.MUSIC_DISC_11);
+                        jukebox.update();
+                        player.playSound(block.getLocation(), Sound.MUSIC_DISC_11, 1.5f, 0.5f);
+                        player.sendMessage("§cUm toca-discos próximo começa a tocar uma melodia macabra...");
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -64,11 +95,10 @@ public class PsychologicalHorrorManager implements Listener {
 
         triggerJumpscare(player);
 
-        // Dropa TODOS os itens do inventário (armazenamento, armadura e segunda mão) no chão
         ItemStack[] contents = player.getInventory().getContents();
         for (int i = 0; i < contents.length; i++) {
             ItemStack item = contents[i];
-            if (item != null && item.getType() != org.bukkit.Material.AIR) {
+            if (item != null && item.getType() != Material.AIR) {
                 player.getWorld().dropItemNaturally(player.getLocation(), item.clone());
                 contents[i] = null;
             }
@@ -82,7 +112,6 @@ public class PsychologicalHorrorManager implements Listener {
 
     /**
      * Evento Clássico: Manada de Mobs Encarando ("Staring Mob Swarm").
-     * Spawna vários mobs ao redor do jogador que ficam parados encarando-o por 15 segundos e depois somem.
      */
     public void triggerStaringMobSwarm(Player player) {
         if (player == null || !player.isOnline()) return;
@@ -103,18 +132,17 @@ public class PsychologicalHorrorManager implements Listener {
             mob.setCustomName("§c...");
             mob.setCustomNameVisible(true);
             mob.setGlowing(true);
-            mob.setAI(false); // Fica parado no lugar
+            mob.setAI(false);
             spawnedMobs.add(mob);
         }
 
-        // Tarefa repetida que força todos os mobs a encararem a cabeça do jogador
         new BukkitRunnable() {
             int ticks = 0;
 
             @Override
             public void run() {
                 ticks += 5;
-                if (ticks >= 300 || !player.isOnline()) { // 15 segundos
+                if (ticks >= 300 || !player.isOnline()) {
                     for (LivingEntity mob : spawnedMobs) {
                         if (mob != null && mob.isValid()) {
                             mob.getWorld().spawnParticle(Particle.SMOKE_LARGE, mob.getLocation(), 15, 0.2, 0.5, 0.2, 0.05);
