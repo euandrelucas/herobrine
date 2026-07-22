@@ -8,6 +8,9 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
@@ -22,16 +25,16 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- * Gerencia a Posse do Jogador pelo Herobrine por 1 minuto.
- * O Herobrine assume o controle total do jogador (movimentação, olhar, frases de chat e quebra de blocos),
- * e ao final de 60 segundos devolve o jogador exatamente para a posição original de início.
+ * Gerencia a Posse de Jogador pelo Herobrine com controle 100% travado da câmera,
+ * imunidade a danos, teleporte e devolução à posição exata.
  */
-public class PlayerPossessionManager {
+public class PlayerPossessionManager implements Listener {
 
     private final HerobrinePlugin plugin;
     private final Map<UUID, BukkitTask> activePossessions = new HashMap<>();
     private final Map<UUID, Location> savedOriginalLocations = new HashMap<>();
     private final Map<UUID, ItemStack> previousHelmets = new HashMap<>();
+    private final Map<UUID, Location> forcedTargetLocations = new HashMap<>();
     private final Random random = new Random();
 
     public PlayerPossessionManager(HerobrinePlugin plugin) {
@@ -44,17 +47,15 @@ public class PlayerPossessionManager {
         UUID uuid = player.getUniqueId();
         if (activePossessions.containsKey(uuid)) return;
 
-        // 1. Salva a posição exata antes da posse
+        // 1. Salva posição exata original
         Location originalLoc = player.getLocation().clone();
         savedOriginalLocations.put(uuid, originalLoc);
 
-        // Salva o capacete original
         ItemStack currentHelmet = player.getInventory().getHelmet();
         if (currentHelmet != null) {
             previousHelmets.put(uuid, currentHelmet.clone());
         }
 
-        // Equipamento e efeitos visuais
         player.setGlowing(true);
         player.setCustomName("§c§l[POSSUÍDO] Herobrine");
         player.setCustomNameVisible(true);
@@ -69,10 +70,10 @@ public class PlayerPossessionManager {
 
         player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 1200, 0));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 1200, 1));
-        player.sendTitle("§c§lPOSSUÍDO", "§8Herobrine tomou controle do seu corpo por 1 minuto!", 10, 80, 10);
+        player.sendTitle("§c§lPOSSUÍDO", "§8Herobrine tomou controle 100% do seu corpo!", 10, 80, 10);
         player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1.5f, 0.5f);
 
-        // 2. Tarefa de Controle Total (roda a cada 5 ticks = 0.25s)
+        // 2. Tarefa de Controle Total (Movimentação, Câmera Travada e Teleportes)
         BukkitTask task = new BukkitRunnable() {
             int ticks = 0;
 
@@ -87,31 +88,41 @@ public class PlayerPossessionManager {
                     return;
                 }
 
-                // 2.1 Movimentação e rotação forçada (anda e olha ao redor)
+                // 2.1 Rotação e olhar forçados (Câmera 100% controlada)
                 Location pLoc = player.getLocation();
                 float yaw = pLoc.getYaw() + (random.nextFloat() * 40 - 20);
-                float pitch = random.nextFloat() * 30 - 15;
+                float pitch = random.nextFloat() * 20 - 10;
                 pLoc.setYaw(yaw);
                 pLoc.setPitch(pitch);
 
-                Vector dir = pLoc.getDirection().normalize().multiply(0.3);
-                player.setVelocity(dir.setY(0.1));
+                forcedTargetLocations.put(uuid, pLoc.clone());
+                player.teleport(pLoc); // Força a nova orientação da câmera
 
-                // 2.2 Animação de balanço de mão e quebra de blocos próximos
+                Vector dir = pLoc.getDirection().normalize().multiply(0.35);
+                player.setVelocity(dir.setY(0.05));
+
                 player.swingMainHand();
+
+                // 2.2 Teleporte aleatório curto durante a posse
+                if (ticks % 100 == 0) { // A cada 5 segundos
+                    double tpX = pLoc.getX() + (random.nextDouble() * 12 - 6);
+                    double tpZ = pLoc.getZ() + (random.nextDouble() * 12 - 6);
+                    Location tpLoc = new Location(pLoc.getWorld(), tpX, pLoc.getY(), tpZ, yaw, pitch);
+                    player.getWorld().spawnParticle(Particle.FLAME, pLoc, 25, 0.3, 0.5, 0.3, 0.1);
+                    player.teleport(tpLoc);
+                    player.playSound(tpLoc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 0.8f);
+                }
 
                 Block targetBlock = player.getTargetBlockExact(3);
                 if (targetBlock != null && targetBlock.getType() != Material.BEDROCK && targetBlock.getType() != Material.AIR) {
-                    if (random.nextDouble() < 0.15) {
-                        targetBlock.setType(Material.NETHERRACK); // Corrompe o bloco em Netherrack
+                    if (random.nextDouble() < 0.20) {
+                        targetBlock.setType(Material.NETHERRACK);
                     }
                 }
 
-                // 2.3 Efeitos de partículas e trovão ambiente
                 player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 8, 0.3, 0.5, 0.3, 0.05);
 
-                // 2.4 Transmissão de frases no chat (sem caracteres ilegais para evitar crash)
-                if (ticks % 300 == 0) { // A cada 15 segundos
+                if (ticks % 300 == 0) {
                     String[] phrases = {
                         "EU SOU O HEROBRINE.",
                         "ESTE CORPO AGORA E MEU.",
@@ -128,8 +139,18 @@ public class PlayerPossessionManager {
     }
 
     /**
-     * Devolve o jogador para a posição exata de antes da posse.
+     * 100% Imunidade a qualquer dano enquanto possuído pelo Herobrine.
      */
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
+            if (isPlayerPossessed(player)) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
     public void releasePlayer(Player player) {
         if (player == null) return;
         UUID uuid = player.getUniqueId();
@@ -138,6 +159,7 @@ public class PlayerPossessionManager {
         if (task != null) {
             task.cancel();
         }
+        forcedTargetLocations.remove(uuid);
 
         if (player.isOnline()) {
             player.setGlowing(false);
@@ -153,7 +175,6 @@ public class PlayerPossessionManager {
             player.removePotionEffect(PotionEffectType.BLINDNESS);
             player.removePotionEffect(PotionEffectType.SPEED);
 
-            // Teleporta de volta para a localização original salva
             Location originalLoc = savedOriginalLocations.remove(uuid);
             if (originalLoc != null) {
                 player.teleport(originalLoc);

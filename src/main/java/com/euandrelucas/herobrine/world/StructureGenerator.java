@@ -15,8 +15,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Gerador de estruturas assustadoras e edições de mundo do Herobrine.
- * Inclui o monumento de Glowstone "HEROBRINE", pirâmides, masmorras e túneis.
+ * Gerador de estruturas assustadoras, Casas de Lava, monumento de Glowstone e túneis.
  */
 public class StructureGenerator {
 
@@ -32,7 +31,57 @@ public class StructureGenerator {
     }
 
     /**
-     * 3.6: Escreve o nome "HEROBRINE" usando blocos de GLOWSTONE/SHROOMLIGHT em um local visível.
+     * Estrutura Clássica: Casa de Lava 5x5 de Cobblestone com teto de vidro e poço de lava.
+     */
+    public void generateLavaHouse(Location baseLoc) {
+        if (baseLoc == null || baseLoc.getWorld() == null) return;
+
+        // Paredes e estrutura 5x4x5
+        for (int x = -2; x <= 2; x++) {
+            for (int y = 0; y <= 3; y++) {
+                for (int z = -2; z <= 2; z++) {
+                    Location loc = baseLoc.clone().add(x, y, z);
+                    boolean isWall = (x == -2 || x == 2 || z == -2 || z == 2);
+                    boolean isRoof = (y == 3);
+                    boolean isFloor = (y == 0);
+
+                    if (isRoof) {
+                        worldEditManager.queueBlockChange(loc, Material.GLASS);
+                    } else if (isWall) {
+                        // Deixa entrada na parede frontal
+                        if (x == 0 && z == 2 && (y == 1 || y == 2)) {
+                            worldEditManager.queueBlockChange(loc, Material.AIR);
+                        } else {
+                            worldEditManager.queueBlockChange(loc, Material.COBBLESTONE);
+                        }
+                    } else if (isFloor) {
+                        // Poço central de lava
+                        if (x == 0 && z == 0) {
+                            worldEditManager.queueBlockChange(loc, Material.LAVA);
+                        } else {
+                            worldEditManager.queueBlockChange(loc, Material.NETHERRACK);
+                        }
+                    } else {
+                        // Interior
+                        if (x == 0 && z == 0 && y == 2) {
+                            worldEditManager.queueBlockChange(loc, Material.LAVA); // Lava caindo do teto
+                        } else {
+                            worldEditManager.queueBlockChange(loc, Material.AIR);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Tochas de redstone nos 4 cantos internos
+        worldEditManager.queueBlockChange(baseLoc.clone().add(1, 1, 1), Material.REDSTONE_TORCH);
+        worldEditManager.queueBlockChange(baseLoc.clone().add(-1, 1, 1), Material.REDSTONE_TORCH);
+        worldEditManager.queueBlockChange(baseLoc.clone().add(1, 1, -1), Material.REDSTONE_TORCH);
+        worldEditManager.queueBlockChange(baseLoc.clone().add(-1, 1, -1), Material.REDSTONE_TORCH);
+    }
+
+    /**
+     * 3.6: Escreve o nome "HEROBRINE" usando blocos de GLOWSTONE em um local visível.
      */
     public void generateGlowstoneNameMonument(Location startLoc) {
         Material mat = Material.GLOWSTONE;
@@ -43,8 +92,6 @@ public class StructureGenerator {
         int[][] patternB = {{1,1,1},{1,0,1},{1,1,0},{1,0,1},{1,1,1}};
         int[][] patternI = {{1,1,1},{0,1,0},{0,1,0},{0,1,0},{1,1,1}};
         int[][] patternN = {{1,0,1},{1,1,1},{1,0,1},{1,0,1},{1,0,1}};
-
-        int[][][] letters = {patternH, patternE, patternR, patternO, patternB, patternR, patternI, patternN, patternE};
 
         Location current = startLoc.clone();
         for (int[][][] letter : new int[][][][]{{patternH}, {patternE}, {patternR}, {patternO}, {patternB}, {patternR}, {patternI}, {patternN}, {patternE}}) {
@@ -61,9 +108,6 @@ public class StructureGenerator {
         }
     }
 
-    /**
-     * 3.1: Cava túneis retos de seção 2x2 em terrenos rochosos.
-     */
     public void generateTunnel(Location startLoc, Vector direction, int length) {
         Location current = startLoc.clone();
         for (int i = 0; i < length; i++) {
@@ -77,9 +121,6 @@ public class StructureGenerator {
         }
     }
 
-    /**
-     * 3.2: Constrói pequenas pirâmides de areia em biomas oceânicos.
-     */
     public void generateSandPyramid(Location baseCenterLoc) {
         int height = 4;
         for (int y = 0; y < height; y++) {
@@ -93,9 +134,6 @@ public class StructureGenerator {
         }
     }
 
-    /**
-     * 3.3: Remove todas as folhas em um raio de floresta.
-     */
     public void stripForestLeaves(Location center, int radius) {
         World world = center.getWorld();
         if (world == null) return;

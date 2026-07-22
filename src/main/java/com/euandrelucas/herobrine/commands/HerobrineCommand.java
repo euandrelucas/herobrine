@@ -45,7 +45,7 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
     private final Set<UUID> possessedStaff = new HashSet<>();
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
-            "spawn", "banish", "jumpscare", "disarm", "swarm", "kidnap", "possess", "possessplayer", "clones", "jukebox", "fear", "setfear", "frequency", "state", "reload", "restorenether", "help"
+            "spawn", "banish", "jumpscare", "disarm", "swarm", "kidnap", "possess", "possessplayer", "lavahouse", "clones", "jukebox", "fear", "setfear", "frequency", "state", "reload", "restorenether", "help"
     );
 
     public HerobrineCommand(HerobrinePlugin plugin) {
@@ -90,6 +90,8 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
                 return handlePossess(sender, args);
             case "possessplayer":
                 return handlePossessPlayer(sender, args);
+            case "lavahouse":
+                return handleLavaHouse(sender, args);
             case "clones":
                 return handleClones(sender, args);
             case "jukebox":
@@ -191,16 +193,23 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    /**
-     * Posse de 1 minuto sobre um jogador normal pelo Herobrine.
-     */
     private boolean handlePossessPlayer(CommandSender sender, String[] args) {
         Player target = getTargetPlayer(sender, args);
         if (target == null) return true;
 
         plugin.getPlayerPossessionManager().possessPlayer(target);
         plugin.getFearManager().addFear(target, 30);
-        sender.sendMessage(MessagesManager.colorize("&aHerobrine tomou posse do jogador &f" + target.getName() + " &apor 1 minuto!"));
+        sender.sendMessage(MessagesManager.colorize("&aHerobrine tomou posse 100% do jogador &f" + target.getName() + " &apor 1 minuto!"));
+        return true;
+    }
+
+    private boolean handleLavaHouse(CommandSender sender, String[] args) {
+        Player target = getTargetPlayer(sender, args);
+        if (target == null) return true;
+
+        Location spawnLoc = target.getLocation().add(target.getLocation().getDirection().multiply(8));
+        plugin.getStructureGenerator().generateLavaHouse(spawnLoc);
+        sender.sendMessage(MessagesManager.colorize("&aCasa de Lava clássica gerada perto de &f" + target.getName()));
         return true;
     }
 
@@ -375,12 +384,13 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessagesManager.colorize("&8=== &cComandos do Plugin Herobrine &8==="));
         sender.sendMessage(MessagesManager.colorize("&f/hb spawn [jogador] &7- Força manifestação do Herobrine."));
         sender.sendMessage(MessagesManager.colorize("&f/hb banish [mundo] &7- Remove o Herobrine do mundo."));
-        sender.sendMessage(MessagesManager.colorize("&f/hb jumpscare <jogador> &7- Dispara susto em um jogador."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb jumpscare <jogador> &7- Dispara susto dinâmico."));
         sender.sendMessage(MessagesManager.colorize("&f/hb disarm <jogador> &7- Susto que dropa TODO o inventário."));
-        sender.sendMessage(MessagesManager.colorize("&f/hb swarm <jogador> &7- Spawna manada de mobs encarando."));
-        sender.sendMessage(MessagesManager.colorize("&f/hb kidnap <jogador> &7- Sequestra o jogador para sala de bedrock."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb swarm <jogador> &7- Spawna manada de mobs encarando (jogador congelado)."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb kidnap <jogador> &7- Sequestra jogador para sala com janela de Herobrines."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb lavahouse [jogador] &7- Constrói Casa de Lava clássica."));
         sender.sendMessage(MessagesManager.colorize("&f/hb possess [admin] &7- Transforma staff em Herobrine."));
-        sender.sendMessage(MessagesManager.colorize("&f/hb possessplayer <jogador> &7- Posse de 1 min pelo Herobrine."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb possessplayer <jogador> &7- Posse de 1 min com controle 100% e imunidade."));
         sender.sendMessage(MessagesManager.colorize("&f/hb clones &7- Invoca clones ilusórios do Herobrine."));
         sender.sendMessage(MessagesManager.colorize("&f/hb jukebox <jogador> &7- Ativa toca-discos amaldiçoado."));
         sender.sendMessage(MessagesManager.colorize("&f/hb fear <jogador> &7- Exibe o nível de medo do jogador."));

@@ -27,18 +27,22 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 
 /**
- * Gerencia efeitos de terror psicológico, variações dinâmicas de jumpscare e fenômenos imersivos.
+ * Gerencia efeitos de terror psicológico, congelamento no swarm, jumpscares e imersão.
  */
 public class PsychologicalHorrorManager implements Listener {
 
     private final HerobrinePlugin plugin;
     private final ConfigManager configManager;
     private final MessagesManager messagesManager;
+    private final Set<UUID> frozenPlayers = new HashSet<>();
     private final Random random = new Random();
 
     public PsychologicalHorrorManager(HerobrinePlugin plugin) {
@@ -47,8 +51,12 @@ public class PsychologicalHorrorManager implements Listener {
         this.messagesManager = plugin.getMessagesManager();
     }
 
+    public boolean isPlayerFrozen(Player player) {
+        return player != null && frozenPlayers.contains(player.getUniqueId());
+    }
+
     /**
-     * 6.1: Dispara um Jumpscare dinâmico (com 4 variações aleatórias impressionantes).
+     * 6.1: Dispara um Jumpscare dinâmico.
      */
     public void triggerJumpscare(Player player) {
         if (player == null || !player.isOnline()) return;
@@ -57,30 +65,23 @@ public class PsychologicalHorrorManager implements Listener {
 
         switch (variation) {
             case 0:
-                // Variação 1: Herobrine aparece a 1 bloco na FRENTE da cara do jogador encarando-o por 1.5s
                 spawnFaceToFaceJumpscare(player);
                 break;
             case 1:
-                // Variação 2: Jumpscare de Desarme (Dropa inventário)
                 triggerDisarmJumpscare(player);
                 break;
             case 2:
-                // Variação 3: Tela de Erro Simulada / Blackout
                 player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1.5f, 0.5f);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 0));
                 player.sendTitle("§0§l[FATAL ERROR]", "§cConnection Lost - Entity 303/Herobrine", 0, 50, 10);
                 break;
             default:
-                // Variação 4: Grito com Título Clássico
                 player.playSound(player.getLocation(), Sound.ENTITY_GHAST_SCREAM, 1.5f, 0.5f);
                 player.sendTitle("§c§lHEROBRINE", "§8ESTOU TE OBSERVANDO", 5, 40, 5);
                 break;
         }
     }
 
-    /**
-     * Spawna a entidade do Herobrine diretamente a 1.2 blocos da cara do jogador encarando-o.
-     */
     private void spawnFaceToFaceJumpscare(Player player) {
         Location eyeLoc = player.getEyeLocation();
         Vector dir = eyeLoc.getDirection().normalize();
@@ -108,7 +109,6 @@ public class PsychologicalHorrorManager implements Listener {
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 2.0f, 0.5f);
         player.sendTitle("§c§l", "§cPARE DE OLHAR", 0, 30, 5);
 
-        // Desaparece após 1.5 segundos em chamas
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (herobrine.isValid()) {
                 world.spawnParticle(Particle.FLAME, herobrine.getLocation().add(0, 1, 0), 30, 0.3, 0.5, 0.3, 0.1);
@@ -117,9 +117,6 @@ public class PsychologicalHorrorManager implements Listener {
         }, 30L);
     }
 
-    /**
-     * Jumpscare de Desarme Total: O susto faz o jogador dropar TODOS os itens do inventário no chão!
-     */
     public void triggerDisarmJumpscare(Player player) {
         if (player == null || !player.isOnline()) return;
 
@@ -142,37 +139,17 @@ public class PsychologicalHorrorManager implements Listener {
     }
 
     /**
-     * Ideia 3: Toca-Discos Amaldiçoado.
-     */
-    public void triggerHauntedJukebox(Player player) {
-        if (player == null || !player.isOnline()) return;
-
-        Location pLoc = player.getLocation();
-        World world = pLoc.getWorld();
-        if (world == null) return;
-
-        for (int x = -10; x <= 10; x++) {
-            for (int y = -3; y <= 3; y++) {
-                for (int z = -10; z <= 10; z++) {
-                    Block block = world.getBlockAt(pLoc.clone().add(x, y, z));
-                    if (block.getType() == Material.JUKEBOX) {
-                        Jukebox jukebox = (Jukebox) block.getState();
-                        jukebox.setPlaying(Material.MUSIC_DISC_11);
-                        jukebox.update();
-                        player.playSound(block.getLocation(), Sound.MUSIC_DISC_11, 1.5f, 0.5f);
-                        player.sendMessage("§cUm toca-discos próximo começa a tocar uma melodia macabra...");
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Evento Clássico: Manada de Mobs Encarando ("Staring Mob Swarm").
+     * Evento Clássico: Manada de Mobs Encarando com CONGELAMENTO TOTAL DO JOGADOR.
      */
     public void triggerStaringMobSwarm(Player player) {
         if (player == null || !player.isOnline()) return;
+
+        UUID uuid = player.getUniqueId();
+        frozenPlayers.add(uuid);
+
+        // Aplica lentidão extrema (congelamento por medo)
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 300, 255));
+        player.sendTitle("§c§lPARALISADO", "§8O medo congela seus movimentos...", 5, 60, 5);
 
         Location pLoc = player.getLocation();
         List<LivingEntity> spawnedMobs = new ArrayList<>();
@@ -200,7 +177,11 @@ public class PsychologicalHorrorManager implements Listener {
             @Override
             public void run() {
                 ticks += 5;
-                if (ticks >= 300 || !player.isOnline()) {
+                if (ticks >= 300 || !player.isOnline()) { // 15s
+                    frozenPlayers.remove(uuid);
+                    if (player.isOnline()) {
+                        player.removePotionEffect(PotionEffectType.SLOW);
+                    }
                     for (LivingEntity mob : spawnedMobs) {
                         if (mob != null && mob.isValid()) {
                             mob.getWorld().spawnParticle(Particle.SMOKE_LARGE, mob.getLocation(), 15, 0.2, 0.5, 0.2, 0.05);
@@ -221,6 +202,30 @@ public class PsychologicalHorrorManager implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 1L, 5L);
+    }
+
+    public void triggerHauntedJukebox(Player player) {
+        if (player == null || !player.isOnline()) return;
+
+        Location pLoc = player.getLocation();
+        World world = pLoc.getWorld();
+        if (world == null) return;
+
+        for (int x = -10; x <= 10; x++) {
+            for (int y = -3; y <= 3; y++) {
+                for (int z = -10; z <= 10; z++) {
+                    Block block = world.getBlockAt(pLoc.clone().add(x, y, z));
+                    if (block.getType() == Material.JUKEBOX) {
+                        Jukebox jukebox = (Jukebox) block.getState();
+                        jukebox.setPlaying(Material.MUSIC_DISC_11);
+                        jukebox.update();
+                        player.playSound(block.getLocation(), Sound.MUSIC_DISC_11, 1.5f, 0.5f);
+                        player.sendMessage("§cUm toca-discos próximo começa a tocar uma melodia macabra...");
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     public void sendCrypticChatMessage(Player player, String message) {
