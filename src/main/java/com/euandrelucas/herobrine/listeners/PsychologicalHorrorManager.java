@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * Gerencia efeitos de terror psicológico, pesadelos, disarm jumpscares e manada de mobs encarando.
+ * Gerencia efeitos de terror psicológico, pesadelos, disarm jumpscares (drop completo do inventário) e manada de mobs encarando.
  */
 public class PsychologicalHorrorManager implements Listener {
 
@@ -57,20 +57,27 @@ public class PsychologicalHorrorManager implements Listener {
     }
 
     /**
-     * Jumpscare Clássico de Desarme: O jogador toma um susto e solta o item da mão no chão.
+     * Jumpscare Clássico de Desarme Total: O susto faz o jogador dropar TODOS os itens do inventário no chão!
      */
     public void triggerDisarmJumpscare(Player player) {
         if (player == null || !player.isOnline()) return;
 
         triggerJumpscare(player);
 
-        // O jogador derruba o item da mão principal no chão do susto
-        ItemStack mainHand = player.getInventory().getItemInMainHand();
-        if (mainHand != null && mainHand.getType() != org.bukkit.Material.AIR) {
-            player.getWorld().dropItemNaturally(player.getLocation(), mainHand.clone());
-            player.getInventory().setItemInMainHand(null);
-            player.sendMessage("§cVocê se assustou tanto que derrubou seu item no chão!");
+        // Dropa TODOS os itens do inventário (armazenamento, armadura e segunda mão) no chão
+        ItemStack[] contents = player.getInventory().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack item = contents[i];
+            if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                player.getWorld().dropItemNaturally(player.getLocation(), item.clone());
+                contents[i] = null;
+            }
         }
+        player.getInventory().setContents(contents);
+        player.getInventory().setArmorContents(new ItemStack[4]);
+        player.getInventory().setItemInOffHand(null);
+
+        player.sendMessage("§c§lO susto foi tão violento que você derrubou TODO o seu inventário no chão!");
     }
 
     /**
