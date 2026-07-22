@@ -6,7 +6,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.type.Door;
 import org.bukkit.entity.Player;
@@ -17,7 +16,7 @@ import java.util.Random;
 
 /**
  * Gerador de estruturas assustadoras e edições de mundo do Herobrine.
- * Utiliza o WorldEditManager para paginar edições de blocos sem travar o servidor.
+ * Inclui o monumento de Glowstone "HEROBRINE", pirâmides, masmorras e túneis.
  */
 public class StructureGenerator {
 
@@ -30,6 +29,36 @@ public class StructureGenerator {
         this.plugin = plugin;
         this.worldEditManager = worldEditManager;
         this.messagesManager = plugin.getMessagesManager();
+    }
+
+    /**
+     * 3.6: Escreve o nome "HEROBRINE" usando blocos de GLOWSTONE/SHROOMLIGHT em um local visível.
+     */
+    public void generateGlowstoneNameMonument(Location startLoc) {
+        Material mat = Material.GLOWSTONE;
+        int[][] patternH = {{1,0,1},{1,0,1},{1,1,1},{1,0,1},{1,0,1}};
+        int[][] patternE = {{1,1,1},{1,0,0},{1,1,1},{1,0,0},{1,1,1}};
+        int[][] patternR = {{1,1,1},{1,0,1},{1,1,1},{1,1,0},{1,0,1}};
+        int[][] patternO = {{1,1,1},{1,0,1},{1,0,1},{1,0,1},{1,1,1}};
+        int[][] patternB = {{1,1,1},{1,0,1},{1,1,0},{1,0,1},{1,1,1}};
+        int[][] patternI = {{1,1,1},{0,1,0},{0,1,0},{0,1,0},{1,1,1}};
+        int[][] patternN = {{1,0,1},{1,1,1},{1,0,1},{1,0,1},{1,0,1}};
+
+        int[][][] letters = {patternH, patternE, patternR, patternO, patternB, patternR, patternI, patternN, patternE};
+
+        Location current = startLoc.clone();
+        for (int[][][] letter : new int[][][][]{{patternH}, {patternE}, {patternR}, {patternO}, {patternB}, {patternR}, {patternI}, {patternN}, {patternE}}) {
+            int[][] p = letter[0];
+            for (int row = 0; row < 5; row++) {
+                for (int col = 0; col < 3; col++) {
+                    if (p[row][col] == 1) {
+                        Location blockLoc = current.clone().add(col, 4 - row, 0);
+                        worldEditManager.queueBlockChange(blockLoc, mat);
+                    }
+                }
+            }
+            current.add(4, 0, 0);
+        }
     }
 
     /**
@@ -65,7 +94,7 @@ public class StructureGenerator {
     }
 
     /**
-     * 3.3: Remove todas as folhas em um raio de floresta (deixando só os troncos).
+     * 3.3: Remove todas as folhas em um raio de floresta.
      */
     public void stripForestLeaves(Location center, int radius) {
         World world = center.getWorld();
@@ -88,9 +117,6 @@ public class StructureGenerator {
         }
     }
 
-    /**
-     * 3.5: Coloca tochas de redstone próximas a estruturas do jogador.
-     */
     public void placeRedstoneTorchesNearPlayer(Player player) {
         Location pLoc = player.getLocation();
         World world = pLoc.getWorld();
@@ -106,22 +132,14 @@ public class StructureGenerator {
         }
     }
 
-    /**
-     * 3.7: Cria cruzes de madeira em florestas.
-     */
     public void generateWoodenCross(Location groundLocation) {
-        // Tronco vertical de 4 blocos
         for (int y = 0; y < 4; y++) {
             worldEditManager.queueBlockChange(groundLocation.clone().add(0, y, 0), Material.OAK_LOG);
         }
-        // Braço horizontal
         worldEditManager.queueBlockChange(groundLocation.clone().add(1, 2, 0), Material.OAK_LOG);
         worldEditManager.queueBlockChange(groundLocation.clone().add(-1, 2, 0), Material.OAK_LOG);
     }
 
-    /**
-     * 3.8: Cria um túnel-isca que termina em blocos de diamante (armadilha/chamariz).
-     */
     public void generateDiamondBaitTunnel(Location startLoc) {
         generateTunnel(startLoc, new Vector(1, 0, 0), 12);
         Location endLoc = startLoc.clone().add(12, 0, 0);
@@ -129,9 +147,6 @@ public class StructureGenerator {
         worldEditManager.queueBlockChange(endLoc.clone().add(0, 1, 0), Material.DIAMOND_ORE);
     }
 
-    /**
-     * 3.10: Deixa placas com mensagens crípticas em um local visitado.
-     */
     public void placeCrypticSign(Location location) {
         List<String> messages = messagesManager.getSignMessages();
         if (messages == null || messages.isEmpty()) return;
@@ -139,7 +154,6 @@ public class StructureGenerator {
         String randomMsg = messages.get(random.nextInt(messages.size()));
         worldEditManager.queueBlockChange(location, Material.OAK_SIGN);
 
-        // Atualização da placa após criação do bloco no tick principal
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             Block block = location.getBlock();
             if (block.getState() instanceof Sign) {
@@ -150,9 +164,6 @@ public class StructureGenerator {
         }, 5L);
     }
 
-    /**
-     * 3.11: Abre/fecha portas próximas ao jogador sozinho ("Ghost Doors").
-     */
     public void triggerGhostDoorsNearPlayer(Player player) {
         Location pLoc = player.getLocation();
         World world = pLoc.getWorld();
@@ -172,9 +183,6 @@ public class StructureGenerator {
         }
     }
 
-    /**
-     * 3.12: Executa explosões controladas sem destruir regiões protegidas.
-     */
     public void triggerControlledExplosion(Location location, float power) {
         if (location == null || location.getWorld() == null) return;
         if (plugin.getHookManager().isLocationProtected(location)) return;
