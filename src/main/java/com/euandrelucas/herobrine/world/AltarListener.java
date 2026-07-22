@@ -6,6 +6,8 @@ import com.euandrelucas.herobrine.core.HerobrinePlugin;
 import com.euandrelucas.herobrine.mobs.MobManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -18,9 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Listener que detecta o ritual do Altar do Herobrine.
- * Estrutura: Netherrack central + tochas de redstone + 8 blocos de ouro/cobblestone musgoso.
- * Ao acender fogo sobre a netherrack, dispara raio e invoca Herobrine.
+ * Listener que detecta a construção e ativação do Altar/Totem do Herobrine.
+ * Suporta o Altar Clássico (Ouro/Netherrack/Redstone) e o Santuário do Nether (Blackstone/Soul Soil/Soul Torches).
+ * Dispara raio, partículas e trovão no totem ao ser aceso.
  */
 public class AltarListener implements Listener {
 
@@ -38,15 +40,14 @@ public class AltarListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockIgnite(BlockIgniteEvent event) {
-        Block block = event.getBlock(); // Onde o fogo será criado
-        Block netherrack = block.getRelative(0, -1, 0);
+        Block block = event.getBlock(); // Onde o fogo foi aceso
+        Block centralBlock = block.getRelative(0, -1, 0);
 
-        if (netherrack.getType() != Material.NETHERRACK) return;
+        if (centralBlock.getType() != Material.NETHERRACK && centralBlock.getType() != Material.SOUL_SOIL) return;
 
         Player player = event.getPlayer();
         if (player == null) return;
 
-        // Verifica permissão para o altar se configurado
         if (plugin.getConfig().getBoolean("altar.require-permission", true) && !player.hasPermission("herobrine.usealtar")) {
             return;
         }
@@ -54,21 +55,28 @@ public class AltarListener implements Listener {
         World world = block.getWorld();
         if (configManager.isWorldDisabled(world.getName())) return;
 
-        // Checa padrão de blocos ao redor
-        if (isAltarStructure(netherrack)) {
-            Location spawnLoc = netherrack.getLocation().add(0.5, 1, 0.5);
+        boolean isClassicAltar = isClassicAltarStructure(centralBlock);
+        boolean isNetherSanctuary = isNetherSanctuaryStructure(centralBlock);
 
-            // Efeito visual de raio
+        if (isClassicAltar || isNetherSanctuary) {
+            Location totemTopLoc = centralBlock.getLocation().add(0.5, 1.0, 0.5);
+
+            // 1. Dispara o RAIO EXATAMENTE sobre o totem
             if (plugin.getConfig().getBoolean("altar.strike-lightning", true)) {
                 if (plugin.getConfig().getBoolean("altar.lightning-damage", false)) {
-                    world.strikeLightning(spawnLoc);
+                    world.strikeLightning(totemTopLoc);
                 } else {
-                    world.strikeLightningEffect(spawnLoc);
+                    world.strikeLightningEffect(totemTopLoc);
                 }
             }
 
-            // Invoca Herobrine no altar
-            boolean spawned = mobManager.spawnHerobrine(world, spawnLoc, player);
+            // 2. Partículas extras de fumaça, chamas e som de trovão retumbante
+            world.spawnParticle(Particle.FLAME, totemTopLoc, 50, 0.5, 0.5, 0.5, 0.1);
+            world.spawnParticle(Particle.SMOKE_LARGE, totemTopLoc, 30, 0.5, 0.5, 0.5, 0.05);
+            world.playSound(totemTopLoc, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 2.0f, 0.5f);
+
+            // 3. Invoca o Herobrine no totem
+            boolean spawned = mobManager.spawnHerobrine(world, totemTopLoc, player);
 
             Map<String, String> ph = new HashMap<>();
             ph.put("player", player.getName());
@@ -82,7 +90,11 @@ public class AltarListener implements Listener {
         }
     }
 
-    private boolean isAltarStructure(Block netherrack) {
+    /**
+     * Valida o Altar Clássico: Netherrack central + 8 Ouro (ou Mossy Cobblestone) + Tochas de Redstone.
+     */
+    private boolean isClassicAltarStructure(Block netherrack) {
+        if (netherrack.getType() != Material.NETHERRACK) return false;
         World world = netherrack.getWorld();
         int nX = netherrack.getX();
         int nY = netherrack.getY();
@@ -90,10 +102,9 @@ public class AltarListener implements Listener {
 
         boolean allowMossy = plugin.getConfig().getBoolean("altar.allow-mossy-cobblestone-substitute", true);
 
-        // Verifica base 3x3 sob a netherrack
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                if (x == 0 && z == 0) continue; // Pula a netherrack central
+                if (x == 0 && z == 0) continue;
                 Material type = world.getBlockAt(nX + x, nY, nZ + z).getType();
                 boolean isGold = type == Material.GOLD_BLOCK;
                 boolean isMossy = allowMossy && type == Material.MOSSY_COBBLESTONE;
@@ -103,7 +114,6 @@ public class AltarListener implements Listener {
             }
         }
 
-        // Verifica tochas de redstone nos 4 cantos ou lados superiores
         int torchCount = 0;
         int[][] torchOffsets = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         for (int[] offset : torchOffsets) {
@@ -113,6 +123,41 @@ public class AltarListener implements Listener {
             }
         }
 
-        return torchCount >= 2; // Requer ao menos 2 tochas de redstone para ativar
+        return torchCount >= 2;
+    }
+
+    /**
+     * Valida o Santuário do Nether (Seção 4.3): Soul Soil / Netherrack central + Blackstone + Soul Torches.
+     */
+    private boolean isNetherSanctuaryStructure(Block central) {
+        World world = central.getWorld();
+        if (world.getEnvironment() != World.Environment.NETHER && !plugin.getConfig().getBoolean("nether-mode.allow-sanctuary-everywhere", false)) {
+            return false;
+        }
+
+        int nX = central.getX();
+        int nY = central.getY();
+        int nZ = central.getZ();
+
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) {
+                if (x == 0 && z == 0) continue;
+                Material type = world.getBlockAt(nX + x, nY, nZ + z).getType();
+                if (type != Material.BLACKSTONE && type != Material.POLISHED_BLACKSTONE) {
+                    return false;
+                }
+            }
+        }
+
+        int torchCount = 0;
+        int[][] torchOffsets = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (int[] offset : torchOffsets) {
+            Block top = world.getBlockAt(nX + offset[0], nY + 1, nZ + offset[1]);
+            if (top.getType() == Material.SOUL_TORCH) {
+                torchCount++;
+            }
+        }
+
+        return torchCount >= 2;
     }
 }

@@ -35,6 +35,15 @@ public class HookManager {
         logger.info("  - GriefPrevention: " + (griefPreventionPresent ? "SIM" : "NÃO"));
         logger.info("  - Towny: " + (townyPresent ? "SIM" : "NÃO"));
         logger.info("  - PlaceholderAPI: " + (placeholderApiPresent ? "SIM" : "NÃO"));
+
+        if (placeholderApiPresent) {
+            try {
+                new HerobrineExpansion(com.euandrelucas.herobrine.core.HerobrinePlugin.getInstance()).register();
+                logger.info("[Hooks] Expansão %herobrine_fear% e %herobrine_active% registrada no PlaceholderAPI.");
+            } catch (Exception e) {
+                logger.warning("[Hooks] Falha ao registrar expansão no PlaceholderAPI: " + e.getMessage());
+            }
+        }
     }
 
     private boolean isPluginEnabled(String name) {
