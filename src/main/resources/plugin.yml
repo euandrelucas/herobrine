@@ -1,0 +1,28 @@
+name: Herobrine
+version: '${project.version}'
+main: com.euandrelucas.herobrine.core.HerobrinePlugin
+api-version: '1.20'
+author: euandrelucas
+description: Plugin completo de Herobrine com IA, terror psicológico, edição de mundo e modo Nether.
+softdepend: [ProtocolLib, WorldGuard, GriefPrevention, Towny, PlaceholderAPI]
+
+commands:
+  herobrine:
+    description: Comando principal do plugin Herobrine.
+    aliases: [hb]
+    usage: /herobrine <spawn|banish|jumpscare|fear|setfear|frequency|state|reload|possess|help>
+    permission: herobrine.admin
+
+permissions:
+  herobrine.admin:
+    description: Permite utilizar todos os comandos administrativos do Herobrine.
+    default: op
+  herobrine.usealtar:
+    description: Permite invocar o Herobrine através do Altar Ritual.
+    default: true
+  herobrine.bypass:
+    description: Impede que o jogador seja escolhido como alvo de assombrações do Herobrine.
+    default: false
+  herobrine.notify:
+    description: Recebe notificações administrativas do plugin Herobrine.
+    default: op

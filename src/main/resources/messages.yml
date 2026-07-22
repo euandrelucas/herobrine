@@ -1,0 +1,53 @@
+# ============================================================================== #
+#                      HEROBRINE PLUGIN - MENSAGENS E CHAT                       #
+#                         Desenvolvido por euandrelucas                          #
+# ============================================================================== #
+
+prefix: "&8[&cHerobrine&8] &r"
+
+no-permission: "&cVocê não tem permissão para executar este comando."
+only-players: "&cEste comando só pode ser executado por um jogador."
+plugin-reloaded: "&aConfigurações e mensagens do Herobrine recarregadas com sucesso!"
+invalid-subcommand: "&cSubcomando inválido. Use &f/herobrine help &cpara ver a lista."
+
+spawn:
+  success: "&aHerobrine foi manifestado no mundo &f%world% &aperto de &f%player%&a."
+  already-active: "&cJá existe uma instância do Herobrine ativa neste mundo (%world%)."
+  disabled-world: "&cO plugin Herobrine está desativado no mundo %world%."
+  cooldown: "&cAguarde antes de tentar manifestar o Herobrine novamente."
+
+banish:
+  success: "&eHerobrine foi banido/removido do mundo &f%world%&e."
+  not-active: "&cNenhuma instância de Herobrine foi encontrada no mundo %world%."
+
+jumpscare:
+  success: "&aJumpscare disparado contra o jogador &f%player%&a."
+  player-not-found: "&cJogador &f%player% &cnão foi encontrado."
+
+fear:
+  get: "&eO nível de medo atual de &f%player% &eé: &c%fear%/100&e."
+  set: "&aNível de medo de &f%player% &adefinido para &c%fear%/100&a."
+
+frequency:
+  set: "&aIntervalo de spawn ambiente ajustado para &f%minutes% &aminutos."
+
+state:
+  header: "&8=== &cEstado Atual do Herobrine &8==="
+  active: "&eStatus: &aAtivo &e(Mundo: &f%world%&e, Estado: &c%state%&e, Raiva: &c%anger%&e)"
+  inactive: "&eStatus: &cInativo &e(Próxima checagem em: &f%next_spawn%s&e)"
+
+possess:
+  enabled: "&aModo Herobrine ativado para &f%player%&a. Você agora possui os atributos e aparência dele."
+  disabled: "&eModo Herobrine desativado para &f%player%&e."
+
+horror:
+  sleep-prevented: "&cVocê sente uma presença maligna observando você... É impossível dormir agora."
+  nightmare: "&8[?] &cVocê acorda sobressaltado com a sensação de ter sido perseguido em seus sonhos..."
+  eerie-entrance: "&e%player% entrou no jogo." # Mensagem falsa de entrada
+  sign-messages:
+    - "ESTOU TE OBSERVANDO"
+    - "NÃO HÁ ONDE SE ESCONDER"
+    - "VOCÊ NÃO DEVERIA ESTAR AQUI"
+    - "PARE"
+    - "HEROBRINE"
+    - "ESTOU ATRÁS DE VOCÊ"

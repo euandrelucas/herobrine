@@ -1,0 +1,161 @@
+# ============================================================================== #
+#                     HEROBRINE PLUGIN - CONFIGURAÇÃO GERAL                      #
+#                         Desenvolvido por euandrelucas                          #
+# ============================================================================== #
+
+# Configurações do Plugin
+plugin:
+  debug: false
+  check-updates: true
+
+# 1. SISTEMA DE INVOCAÇÃO E SPAWN AMBIENTE
+spawn:
+  enabled: true
+  # Intervalo entre tentativas de spawn em minutos
+  interval-minutes: 10
+  # Variação aleatória em minutos (+/-)
+  random-variance-minutes: 3
+  # Chance percentual de manifestação a cada intervalo (0.0 a 1.0)
+  chance: 0.45
+  # Distância mínima do jogador para spawn (em blocos)
+  min-distance: 15
+  # Distância máxima do jogador para spawn (em blocos)
+  max-distance: 35
+  # Requer linha de visão limpa (fora da visão direta inicial do jogador)
+  require-line-of-sight: true
+  # Cooldown por jogador em minutos
+  player-cooldown-minutes: 15
+  # Cooldown global do servidor em minutos
+  global-cooldown-minutes: 5
+  # Janela de tempo permitida para manifestação: ALWAYS, NIGHT, DAY, RAIN, CAVES_ONLY
+  spawn-window: "ALWAYS"
+  # Apenas 1 instância de Herobrine por mundo
+  limit-one-per-world: true
+  # Mundos desativados onde o Herobrine nunca spawnará
+  disabled-worlds:
+    - "world_the_end"
+
+# 1.2 RITUAL DO ALTAR
+altar:
+  enabled: true
+  require-permission: true
+  strike-lightning: true
+  lightning-damage: false
+  # Estrutura padrão: 9 ouro (ou cobblestone musgoso) + 1 netherrack central + 4 tochas de redstone
+  allow-mossy-cobblestone-substitute: true
+
+# 2. IA E MÁQUINA DE ESTADOS
+ai:
+  states:
+    WATCHING:
+      enabled: true
+      duration-seconds: 15
+    DWELLING:
+      enabled: true
+      max-light-level: 7
+    CREEPING:
+      enabled: true
+      approach-speed: 0.25
+    LURKER:
+      enabled: true
+      reposition-interval-seconds: 8
+    SNEAKY_STRIKE:
+      enabled: true
+      strike-damage: 4.0
+    HOSTILE:
+      enabled: true
+      base-damage: 6.0
+      movement-speed: 0.35
+      health: 100.0
+    FLEEING:
+      enabled: true
+      health-threshold-percent: 0.20 # Foge com menos de 20% de vida
+      fury-increase-per-defeat: 10 # Aumenta fúria ao fugir
+      max-fury: 100
+    POSSESSING:
+      enabled: true
+      duration-seconds: 30
+      hostile-chance: 0.30
+
+# 3. EDIÇÃO DE MUNDO E ESTRUTURAS
+world-editing:
+  enabled: true
+  max-blocks-per-tick: 20 # Paginação para evitar lag no servidor
+  respect-protection-plugins: true
+  features:
+    tunnels-2x2: true
+    sand-pyramids: true
+    strip-tree-leaves: true
+    dungeons: true
+    redstone-torches: true
+    text-easter-egg: true # Escreve "HEROBRINE" no mapa
+    wooden-crosses: true
+    diamond-traps: true
+    haunted-paintings: true
+    cryptic-signs: true
+    ghost-doors: true
+    controlled-explosions: true
+    controlled-fire: false # Desativado por padrão por segurança
+
+# 4. MODO DE CORRUPÇÃO DO NETHER
+nether-mode:
+  enabled: true
+  threat-threshold: 75 # Nível de fúria/ameaça para iniciar corrupção
+  lava-rise-speed-seconds: 5 # Segundos entre cada bloco de lava subindo
+  max-corrupted-blocks-per-session: 250
+  netherbrine-towers: true
+  nether-sanctuary: true
+
+# 5. MOBS CUSTOMIZADOS
+custom-mobs:
+  possessed-animals:
+    enabled: true
+    glow-effect: true
+  possessed-monsters:
+    enabled: true
+    spawn-replace-chance: 0.10
+    health-multiplier: 1.5
+    damage-multiplier: 1.3
+  netherbrine:
+    enabled: true
+    shroomlight-particles: true
+    fire-immune: true
+  defeat-item-recipe:
+    enabled: true
+    # Maçã dourada encantada + Estrela do Nether + Cabeça de Dragão + Blocos de Diamante
+
+# 6. TERROR PSICOLÓGICO E IMERSÃO
+horror:
+  jumpscare:
+    enabled: true
+    sound: "ENTITY_ENDERMAN_SCREAM"
+    title-duration-ticks: 40
+    # AVISO DE EPILEPSIA / FOTOSSENSIBILIDADE: opção avançada de tela de erro simulada (falso crash)
+    simulate-error-screen: false
+  avistamento-sound: "AMBIENT_CAVE" # Opções: NONE, AMBIENT_CAVE, GHAST_SCREAM
+  backwards-messages: true
+  eerie-entrance-message: true
+  prevent-sleep: true
+  nightmares:
+    enabled: true
+    chance: 0.15
+  labyrinth-teleport:
+    enabled: true
+    chance: 0.05
+    timeout-seconds: 120
+
+# 7. SISTEMA DE MEDO E PARANOIA
+fear-system:
+  enabled: true
+  storage-type: "SQLITE" # SQLITE ou YAML
+  max-fear: 100
+  decay-per-minute: 1.0
+  increase:
+    sighting: 5
+    jumpscare: 15
+    attack-received: 20
+    dungeon-found: 10
+
+# 8. PERMISSÕES E BYPASS
+protection:
+  bypass-permission: "herobrine.bypass"
