@@ -36,7 +36,7 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
     private final FearManager fearManager;
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
-            "spawn", "banish", "jumpscare", "fear", "setfear", "frequency", "state", "reload", "restorenether", "help"
+            "spawn", "banish", "jumpscare", "disarm", "swarm", "kidnap", "fear", "setfear", "frequency", "state", "reload", "restorenether", "help"
     );
 
     public HerobrineCommand(HerobrinePlugin plugin) {
@@ -71,6 +71,12 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
                 return handleReload(sender);
             case "jumpscare":
                 return handleJumpscare(sender, args);
+            case "disarm":
+                return handleDisarm(sender, args);
+            case "swarm":
+                return handleSwarm(sender, args);
+            case "kidnap":
+                return handleKidnap(sender, args);
             case "fear":
                 return handleFear(sender, args);
             case "setfear":
@@ -165,25 +171,57 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleJumpscare(CommandSender sender, String[] args) {
-        if (args.length < 2) {
-            sender.sendMessage(MessagesManager.colorize("&cUso: /herobrine jumpscare <jogador>"));
-            return true;
-        }
-        Player target = Bukkit.getPlayer(args[1]);
-        if (target == null) {
-            Map<String, String> ph = new HashMap<>();
-            ph.put("player", args[1]);
-            sender.sendMessage(messagesManager.getFormattedMessage("jumpscare.player-not-found", ph));
-            return true;
-        }
+        Player target = getTargetPlayer(sender, args);
+        if (target == null) return true;
 
         plugin.getHorrorManager().triggerJumpscare(target);
         plugin.getFearManager().addFear(target, 15);
-
-        Map<String, String> ph = new HashMap<>();
-        ph.put("player", target.getName());
-        sender.sendMessage(messagesManager.getFormattedMessage("jumpscare.success", ph));
+        sender.sendMessage(MessagesManager.colorize("&aJumpscare disparado contra &f" + target.getName()));
         return true;
+    }
+
+    private boolean handleDisarm(CommandSender sender, String[] args) {
+        Player target = getTargetPlayer(sender, args);
+        if (target == null) return true;
+
+        plugin.getHorrorManager().triggerDisarmJumpscare(target);
+        plugin.getFearManager().addFear(target, 20);
+        sender.sendMessage(MessagesManager.colorize("&aDisarm Jumpscare disparado contra &f" + target.getName()));
+        return true;
+    }
+
+    private boolean handleSwarm(CommandSender sender, String[] args) {
+        Player target = getTargetPlayer(sender, args);
+        if (target == null) return true;
+
+        plugin.getHorrorManager().triggerStaringMobSwarm(target);
+        plugin.getFearManager().addFear(target, 10);
+        sender.sendMessage(MessagesManager.colorize("&aManada de mobs encarando enviada para &f" + target.getName()));
+        return true;
+    }
+
+    private boolean handleKidnap(CommandSender sender, String[] args) {
+        Player target = getTargetPlayer(sender, args);
+        if (target == null) return true;
+
+        plugin.getKidnapManager().kidnapPlayer(target);
+        plugin.getFearManager().addFear(target, 25);
+        sender.sendMessage(MessagesManager.colorize("&aEvento de Sequestro disparado contra &f" + target.getName()));
+        return true;
+    }
+
+    private Player getTargetPlayer(CommandSender sender, String[] args) {
+        if (args.length > 1) {
+            Player p = Bukkit.getPlayer(args[1]);
+            if (p == null) {
+                sender.sendMessage(MessagesManager.colorize("&cJogador &f" + args[1] + " &cnão foi encontrado."));
+            }
+            return p;
+        } else if (sender instanceof Player) {
+            return (Player) sender;
+        }
+        sender.sendMessage(MessagesManager.colorize("&cUso: /herobrine " + args[0] + " <jogador>"));
+        return null;
     }
 
     private boolean handleFear(CommandSender sender, String[] args) {
@@ -246,6 +284,9 @@ public class HerobrineCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessagesManager.colorize("&f/hb spawn [jogador] &7- Força manifestação do Herobrine."));
         sender.sendMessage(MessagesManager.colorize("&f/hb banish [mundo] &7- Remove o Herobrine do mundo."));
         sender.sendMessage(MessagesManager.colorize("&f/hb jumpscare <jogador> &7- Dispara susto em um jogador."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb disarm <jogador> &7- Jumpscare que faz soltar item da mão."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb swarm <jogador> &7- Spawna manada de mobs encarando."));
+        sender.sendMessage(MessagesManager.colorize("&f/hb kidnap <jogador> &7- Sequestra o jogador para sala de bedrock."));
         sender.sendMessage(MessagesManager.colorize("&f/hb fear <jogador> &7- Exibe o nível de medo do jogador."));
         sender.sendMessage(MessagesManager.colorize("&f/hb setfear <jogador> <0-100> &7- Define o nível de medo."));
         sender.sendMessage(MessagesManager.colorize("&f/hb frequency <minutos> &7- Ajusta intervalo de spawn."));

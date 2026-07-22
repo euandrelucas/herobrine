@@ -5,6 +5,7 @@ import com.euandrelucas.herobrine.compat.HookManager;
 import com.euandrelucas.herobrine.config.ConfigManager;
 import com.euandrelucas.herobrine.config.MessagesManager;
 import com.euandrelucas.herobrine.fear.FearManager;
+import com.euandrelucas.herobrine.listeners.KidnapManager;
 import com.euandrelucas.herobrine.listeners.PlayerListener;
 import com.euandrelucas.herobrine.listeners.PsychologicalHorrorManager;
 import com.euandrelucas.herobrine.mobs.HerobrineMob;
@@ -39,6 +40,7 @@ public class HerobrinePlugin extends JavaPlugin {
     private FearManager fearManager;
     private PossessedMobManager possessedMobManager;
     private PsychologicalHorrorManager horrorManager;
+    private KidnapManager kidnapManager;
 
     private BukkitTask tickTask;
 
@@ -70,6 +72,7 @@ public class HerobrinePlugin extends JavaPlugin {
         this.fearManager = new FearManager(this);
         this.possessedMobManager = new PossessedMobManager(this);
         this.horrorManager = new PsychologicalHorrorManager(this);
+        this.kidnapManager = new KidnapManager(this);
 
         // 3. Registra Listeners
         Bukkit.getPluginManager().registerEvents(new PlayerListener(this), this);
@@ -169,5 +172,9 @@ public class HerobrinePlugin extends JavaPlugin {
 
     public PsychologicalHorrorManager getHorrorManager() {
         return horrorManager;
+    }
+
+    public KidnapManager getKidnapManager() {
+        return kidnapManager;
     }
 }

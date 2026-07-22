@@ -5,25 +5,35 @@ import com.euandrelucas.herobrine.config.MessagesManager;
 import com.euandrelucas.herobrine.core.HerobrinePlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerBedLeaveEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
- * Gerencia efeitos de terror psicológico, pesadelos, jumpscares e simulações client-safe.
+ * Gerencia efeitos de terror psicológico, pesadelos, disarm jumpscares e manada de mobs encarando.
  */
 public class PsychologicalHorrorManager implements Listener {
 
     private final HerobrinePlugin plugin;
     private final ConfigManager configManager;
     private final MessagesManager messagesManager;
+    private final Random random = new Random();
 
     public PsychologicalHorrorManager(HerobrinePlugin plugin) {
         this.plugin = plugin;
@@ -32,7 +42,7 @@ public class PsychologicalHorrorManager implements Listener {
     }
 
     /**
-     * 6.1: Executa jumpscare no jogador.
+     * 6.1: Executa jumpscare padrão no jogador.
      */
     public void triggerJumpscare(Player player) {
         if (player == null || !player.isOnline()) return;
@@ -40,11 +50,84 @@ public class PsychologicalHorrorManager implements Listener {
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1.0f, 0.5f);
 
         if (plugin.getConfig().getBoolean("horror.jumpscare.simulate-error-screen", false)) {
-            // Tela preta cheia com aviso de erro simulado (client-safe)
             player.sendTitle("§0§l[FATAL ERROR]", "§cConnection Lost - Entity 303/Herobrine", 0, 40, 10);
         } else {
             player.sendTitle("§c§lHEROBRINE", "§8Ele encontrou você.", 5, 30, 5);
         }
+    }
+
+    /**
+     * Jumpscare Clássico de Desarme: O jogador toma um susto e solta o item da mão no chão.
+     */
+    public void triggerDisarmJumpscare(Player player) {
+        if (player == null || !player.isOnline()) return;
+
+        triggerJumpscare(player);
+
+        // O jogador derruba o item da mão principal no chão do susto
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        if (mainHand != null && mainHand.getType() != org.bukkit.Material.AIR) {
+            player.getWorld().dropItemNaturally(player.getLocation(), mainHand.clone());
+            player.getInventory().setItemInMainHand(null);
+            player.sendMessage("§cVocê se assustou tanto que derrubou seu item no chão!");
+        }
+    }
+
+    /**
+     * Evento Clássico: Manada de Mobs Encarando ("Staring Mob Swarm").
+     * Spawna vários mobs ao redor do jogador que ficam parados encarando-o por 15 segundos e depois somem.
+     */
+    public void triggerStaringMobSwarm(Player player) {
+        if (player == null || !player.isOnline()) return;
+
+        Location pLoc = player.getLocation();
+        List<LivingEntity> spawnedMobs = new ArrayList<>();
+        EntityType[] types = {EntityType.COW, EntityType.PIG, EntityType.SHEEP, EntityType.CHICKEN};
+
+        int count = 6;
+        for (int i = 0; i < count; i++) {
+            double angle = (2 * Math.PI / count) * i;
+            double x = pLoc.getX() + 4 * Math.cos(angle);
+            double z = pLoc.getZ() + 4 * Math.sin(angle);
+            Location spawnLoc = new Location(pLoc.getWorld(), x, pLoc.getY(), z);
+
+            EntityType selectedType = types[random.nextInt(types.length)];
+            LivingEntity mob = (LivingEntity) pLoc.getWorld().spawnEntity(spawnLoc, selectedType);
+            mob.setCustomName("§c...");
+            mob.setCustomNameVisible(true);
+            mob.setGlowing(true);
+            mob.setAI(false); // Fica parado no lugar
+            spawnedMobs.add(mob);
+        }
+
+        // Tarefa repetida que força todos os mobs a encararem a cabeça do jogador
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                ticks += 5;
+                if (ticks >= 300 || !player.isOnline()) { // 15 segundos
+                    for (LivingEntity mob : spawnedMobs) {
+                        if (mob != null && mob.isValid()) {
+                            mob.getWorld().spawnParticle(Particle.SMOKE_LARGE, mob.getLocation(), 15, 0.2, 0.5, 0.2, 0.05);
+                            mob.remove();
+                        }
+                    }
+                    cancel();
+                    return;
+                }
+
+                for (LivingEntity mob : spawnedMobs) {
+                    if (mob != null && mob.isValid()) {
+                        Location mobLoc = mob.getLocation();
+                        Vector dir = player.getEyeLocation().toVector().subtract(mobLoc.toVector()).normalize();
+                        mobLoc.setDirection(dir);
+                        mob.teleport(mobLoc);
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 5L);
     }
 
     /**
