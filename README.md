@@ -1,94 +1,33 @@
-# Herobrine - Plugin Minecraft Spigot/Paper
+# Herobrine 2.0 (plugin Paper 1.21.9+)
 
-Um plugin completo, imersivo e de alta fidelidade para servidores Minecraft Spigot e Paper (1.20.x / 1.21.x em Java 17+ / Java 21), trazendo a lendária entidade **Herobrine** para o seu servidor.
+Herobrine no estilo do *The Herobrine Mod*, mas 100% plugin. Reescrito do zero.
 
-Desenvolvido sob o pacote `com.euandrelucas.herobrine`.
+## Como funciona
 
----
+- **Corpo de verdade**: usa a entidade `Mannequin` (Paper 1.21.9+) com skin de jogador. Cada aparição é **visível só para o jogador-alvo**.
+- **Presença oculta (0-100)** por jogador, salva no próprio jogador. Sobe com o tempo jogado e com o comportamento; o jogador nunca vê o número.
+  - 0-15: só sons (cave sounds, respiração, passos atrás de você)
+  - 15-35: avistamentos ao longe, janelas, tochas apagadas, portas, animais encarando
+  - 35-55: árvores sem folhas, túneis 1x2, placas, cruzes, netherrack em chamas, tempestade
+  - 55-75: perseguições e stalking (some quando você olha, reaparece mais perto)
+  - 75+: encontros diretos (opcional: combate)
+- **Aprendizado**: minera muito no subsolo → túneis misteriosos; passa a noite em casa → ele aparece na janela; dorme → acorda com placa, tocha apagada ou porta aberta.
+- **Altar**: 3x3 de blocos de ouro, netherrack no centro, 4 tochas de redstone em volta, acenda o fogo.
+- Nada destrutivo: não apaga inventário, e as alterações de bloco usam fila (blocos por tick configurável).
 
-## 🌟 Funcionalidades
+## Comandos (`/hb`, permissão `herobrine.admin`)
 
-### 1. Invocação & Spawn Inteligente
-- **Spawn Ambiente Automático**: Manifestação em intervalos configuráveis com variação aleatória perto de jogadores fora da visão direta inicial.
-- **Ritual do Altar**: Construa a estrutura (base 3x3 de blocos de ouro/cobblestone musgoso + netherrack central + 4 tochas de redstone) e acenda fogo sobre a netherrack para invocar o Herobrine com um efeito de raio visual.
-- **Regra de Unicidade**: Máximo de apenas **1** Herobrine ativo por mundo por vez.
+`/hb spawn <stare|window|stalk|chase|hostile> [jogador]` · `/hb event <id> [jogador]` · `/hb presence <jogador> [set N]` · `/hb banish [jogador|all]` · `/hb reload` · `/hb info`
 
-### 2. Máquina de Estados Finita da IA
-O mob transiciona dinamicamente entre 8 estados guiados por um nível de ameaça/raiva:
-1. `WATCHING`: Observa à distância e teletransporta ao ser olhado diretamente.
-2. `DWELLING`: Permanece parado em locais escuros perto do jogador.
-3. `CREEPING`: Aproxima-se furtivamente.
-4. `LURKER`: Muda de posição ativamente para continuar espionando.
-5. `SNEAKY_STRIKE`: Desfere um golpe surpresa se ignorado por muito tempo.
-6. `HOSTILE`: Ataca abertamente o jogador.
-7. `FLEEING`: Teletransporta para longe quando a vida fica baixa e aprende com a derrota.
-8. `POSSESSING`: Possui animais passivos próximos.
+Para testar rápido: `/hb presence <você> set 80` e `/hb event sighting`. Em criativo o diretor automático não age (use os comandos).
 
-### 3. Edição de Mundo Paginada (Sem Lag)
-Fila de alteração de blocos assíncrona (`max-blocks-per-tick`) respeitando plugins de proteção (WorldGuard, GriefPrevention, Towny):
-- Túneis 2x2 em rocha.
-- Pirâmides perfeitas de areia em oceanos.
-- Remoção de folhas de florestas inteiras.
-- Masmorras subterrâneas com armadilhas.
-- Tochas de redstone em telhados.
-- Cruzes de madeira em florestas.
-- Túneis-isca com minério de diamante.
-- Placas com mensagens assustadoras.
-- Portas fantasmas ("Ghost Doors" abrindo e fechando).
-- Explosões controladas e fogo.
-- Pinturas assombradas que mudam de arte quando o jogador não olha diretamente.
+## Skin
 
-### 4. Modo de Corrupção do Nether
-- Elevação gradual do nível de lava na área do Nether quando a fúria do Herobrine atinge o limiar.
-- Comando `/hb restorenether` para reverter a corrupção restaurando o snapshot dos blocos.
+Por padrão usa a skin da conta `Herobrine`. Para olhos brancos, gere uma skin assinada em mineskin.org e cole `texture-value` / `texture-signature` em `config.yml`.
 
-### 5. Mobs Possuídos & Ritual de Banimento
-- **Animais Possuídos**: Vacas com empurrão, ovelhas emitindo fumaça e galinhas invocando morcegos.
-- **Monstros Possuídos**: Zumbis e esqueletos com atributos aumentados.
-- **Relíquia de Banimento**: Receita de crafting personalizada (Maçã dourada encantada + Estrela do Nether + Cabeça de Dragão + Blocos de Diamante).
-
-### 6. Terror Psicológico & Sistema de Medo
-- Jumpscares visuais/sonoros e tela de erro opcional (client-safe).
-- Mensagens de chat escritas ao contrário.
-- Pesadelos ao acordar da cama com efeitos leves de cegueira/náusea.
-- **Sistema de Medo (0-100)**: Medo individual por jogador armazenado em arquivo YAML (`fear_data.yml`).
-
----
-
-## 🛠️ Comandos & Permissões
-
-### Comandos (`/herobrine` ou `/hb`)
-- `/hb spawn [jogador]` - Força a manifestação do Herobrine.
-- `/hb banish [mundo]` - Remove o Herobrine do mundo.
-- `/hb jumpscare <jogador>` - Dispara um susto imediato.
-- `/hb fear <jogador>` - Mostra o nível de medo do jogador.
-- `/hb setfear <jogador> <0-100>` - Define o nível de medo de um jogador.
-- `/hb frequency <minutos>` - Ajusta o intervalo de spawn ambiente.
-- `/hb restorenether` - Reverte alterações da corrupção do Nether.
-- `/hb state` - Exibe o estado e o nível de raiva atual do Herobrine.
-- `/hb reload` - Recarrega as configurações (`config.yml`) e mensagens (`messages.yml`).
-
-### Permissões
-- `herobrine.admin` - Acesso a todos os comandos administrativos (Padrão: `op`).
-- `herobrine.usealtar` - Permissão para invocar o Herobrine usando o Altar Ritual (Padrão: `true`).
-- `herobrine.bypass` - Impede que o jogador seja escolhido como alvo de assombrações.
-- `herobrine.notify` - Recebe avisos administrativos do plugin.
-
----
-
-## 📦 Como Compilar
-
-Requisitos: Java 17+ (ou Java 21) instalado.
+## Compilar
 
 ```bash
-# No Windows
-mvnw.cmd clean package
-
-# O arquivo JAR compilado será gerado em:
-# target/herobrine-1.0.0-SNAPSHOT.jar
+./maven/apache-maven-3.9.6/bin/mvn clean package
 ```
-
----
-
-## 📜 Créditos e Isenção de Responsabilidade
-Conceito inspirado na clássica creepypasta comunitária de Herobrine (2010-2011) e em mods/plugins clássicos da comunidade Minecraft. Este plugin utiliza exclusivamente recursos e APIs padrão do Minecraft/Bukkit/Paper e não contém assets protegidos por direitos autorais de terceiros.
+Saída: `target/Herobrine-2.0.0.jar`. Requer Java 21.
