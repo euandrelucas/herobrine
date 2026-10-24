@@ -178,7 +178,7 @@ public final class Items {
         ShapedRecipe r = new ShapedRecipe(new NamespacedKey(plugin, result.key()), create(result, 1));
         r.shape(shape);
         r.setIngredient('D', exact(Id.CURSED_DIAMOND));
-        r.setIngredient('S', Material.STICK);
+        if (String.join("", shape).indexOf('S') >= 0) r.setIngredient('S', Material.STICK);
         add(r);
     }
 
