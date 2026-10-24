@@ -61,17 +61,28 @@ public final class Apparitions {
     public Apparition find(Entity e) {
         if (!(e instanceof Mannequin)) return null;
         for (Apparition a : active.values()) {
-            if (a.body() != null && a.body().equals(e)) return a;
+            if (a.owns(e)) return a;
         }
         return null;
     }
 
+    public java.util.Collection<Apparition> all() {
+        return active.values();
+    }
+
     /** @return false se o jogador já tem uma aparição ou o local é nulo. */
     public boolean spawn(Player p, Apparition.Mode mode, Location at) {
-        if (has(p) || at == null) return false;
-        active.put(p.getUniqueId(), new Apparition(plugin, p, mode, at));
+        return spawn(p, mode, at, null) != null;
+    }
+
+    /** Cria uma aparição e deixa o chamador configurá-la (ex.: lista de blocos do Builder). */
+    public Apparition spawn(Player p, Apparition.Mode mode, Location at, java.util.function.Consumer<Apparition> configure) {
+        if (has(p) || at == null) return null;
+        Apparition a = new Apparition(plugin, p, mode, at);
+        if (configure != null) configure.accept(a);
+        active.put(p.getUniqueId(), a);
         plugin.debug(mode + " para " + p.getName());
-        return true;
+        return a;
     }
 
     public void remove(Player p) {

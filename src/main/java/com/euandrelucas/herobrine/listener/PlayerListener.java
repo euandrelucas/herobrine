@@ -15,6 +15,8 @@ import org.bukkit.event.player.PlayerBedLeaveEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import com.euandrelucas.herobrine.director.ChatEvents;
 
 public final class PlayerListener implements Listener {
 
@@ -71,10 +73,18 @@ public final class PlayerListener implements Listener {
         Apparition a = plugin.apparitions().find(e.getEntity());
         if (a == null) return;
         e.setCancelled(true);
-        if (e.getDamager() instanceof Player p && p.equals(a.owner())) {
-            double dmg = e.getDamage();
-            if (a.mode() == Apparition.Mode.HOSTILE) dmg = Math.max(dmg, 2);
-            a.onHit(dmg);
-        }
+        Player attacker = null;
+        if (e.getDamager() instanceof Player p) attacker = p;
+        else if (e.getDamager() instanceof org.bukkit.entity.Projectile pr && pr.getShooter() instanceof Player p) attacker = p;
+        if (attacker == null) return;
+        // só o dono mexe com aparições comuns; o chefe aceita qualquer jogador
+        if (a.mode() != Apparition.Mode.BOSS && !attacker.equals(a.owner())) return;
+        a.onHit(e.getEntity(), attacker, Math.max(e.getDamage(), 2));
+    }
+
+    /** Responde ao jogador que cumprimentou o "Herobrine" falso. */
+    @EventHandler
+    public void onChat(AsyncChatEvent e) {
+        ChatEvents.consumeReply(plugin, e.getPlayer());
     }
 }

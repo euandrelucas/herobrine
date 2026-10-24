@@ -39,23 +39,59 @@ public final class Events {
     public record Def(String id, int minPresence, Runner runner) {}
 
     public static final List<Def> ALL = List.of(
+            // fase 0: ruídos, sinais e recados
             new Def("sounds", 0, Events::sounds),
+            new Def("fake-chat", 0, ChatEvents::fakeChat),
+            new Def("redstone-under", 3, ChatEvents::redstoneUnder),
             new Def("footsteps", 5, Events::footsteps),
+            new Def("mossy-pyramid", 5, WorldEvents::mossyPyramid),
+            new Def("creeper-hiss", 8, ChatEvents::creeperHiss),
             new Def("animals-stare", 8, Events::animalsStare),
             new Def("sighting", 10, Events::sighting),
+            new Def("bedrock-cross", 10, WorldEvents::bedrockCross),
+            new Def("monument", 10, WorldEvents::monument),
+            new Def("survivor-base", 10, WorldEvents::survivorBase),
             new Def("extinguish", 12, Events::extinguish),
             new Def("doors", 12, Events::doors),
+            new Def("title-who", 12, ChatEvents::titleWho),
+            new Def("fake-logs", 12, ChatEvents::fakeLogs),
+            new Def("chest-hi", 14, ChatEvents::chestHi),
+            // fase 1-2
             new Def("window", 15, Events::window),
             new Def("strip-tree", 15, Events::stripTree),
+            new Def("greet", 15, ChatEvents::greet),
+            new Def("floating-bedrock", 15, WorldEvents::floatingBedrock),
             new Def("tunnel", 20, Events::tunnel),
+            new Def("infect-animals", 20, WorldEvents::infect),
+            new Def("fake-diamond", 20, WorldEvents::fakeDiamond),
+            new Def("flash", 20, WorldEvents::flash),
+            new Def("ruined-shrine", 20, WorldEvents::ruinedShrine),
             new Def("sign", 25, Events::sign),
             new Def("fake-join", 25, Events::fakeJoin),
+            new Def("sky-stalker", 25, WorldEvents::sky),
+            new Def("action-music", 25, ChatEvents::actionMusic),
+            new Def("trapped-house", 25, WorldEvents::trappedHouse),
             new Def("storm", 30, Events::storm),
-            new Def("cross", 35, Events::cross),
+            new Def("weeping", 30, WorldEvents::weeping),
+            new Def("random-damage", 30, ChatEvents::randomDamage),
+            new Def("statue", 30, WorldEvents::statue),
+            // fase 3
+            new Def("cross", 35, WorldEvents::woodenCross),
             new Def("netherrack-fire", 35, Events::netherrackFire),
+            new Def("cursed-forest", 35, Events::cursedForest),
             new Def("stalk", 40, Events::stalk),
-            new Def("pyramid", 45, Events::pyramid),
+            new Def("letters", 40, WorldEvents::letters),
+            new Def("sand-pyramid", 45, WorldEvents::sandPyramid),
+            new Def("title-hide", 45, ChatEvents::titleHide),
+            new Def("fake-shutdown", 45, ChatEvents::fakeShutdown),
+            new Def("scream", 45, ChatEvents::scream),
+            new Def("gl-errors", 50, ChatEvents::glErrors),
+            new Def("circle", 50, WorldEvents::circle),
+            // fase 4
             new Def("chase", 55, Events::chase),
+            new Def("knockback", 55, WorldEvents::knockback),
+            new Def("mage", 65, WorldEvents::mage),
+            new Def("title-leave", 70, ChatEvents::titleLeave),
             new Def("hostile", 75, Events::hostile)
     );
 
@@ -242,11 +278,19 @@ public final class Events {
     // ------------------------------------------------------------ alterações no mundo
 
     private static boolean stripTree(HerobrinePlugin plugin, Player p) {
+        return stripTrees(plugin, p, 1);
+    }
+
+    /** Floresta amaldiçoada: tira as folhas de várias árvores de uma vez. */
+    private static boolean cursedForest(HerobrinePlugin plugin, Player p) {
+        return stripTrees(plugin, p, 6 + Util.rng().nextInt(6));
+    }
+
+    private static boolean stripTrees(HerobrinePlugin plugin, Player p, int count) {
         Location c = p.getLocation();
         World w = c.getWorld();
-        Block log = null;
-        double best = Double.MAX_VALUE;
-        for (int i = 0; i < 400; i++) {
+        List<Block> logs = new ArrayList<>();
+        for (int i = 0; i < 600 && logs.size() < count; i++) {
             int x = c.getBlockX() + Util.rng().nextInt(-40, 41);
             int z = c.getBlockZ() + Util.rng().nextInt(-40, 41);
             if (!w.isChunkLoaded(x >> 4, z >> 4)) continue;
@@ -254,39 +298,39 @@ public final class Events {
             for (int dy = 0; dy < 12; dy++) {
                 Block b = w.getBlockAt(x, y - dy, z);
                 if (Tag.LOGS.isTagged(b.getType())) {
-                    double d = b.getLocation().distanceSquared(c);
-                    if (d > 144 && d < best) {
-                        best = d;
-                        log = b;
-                    }
+                    boolean far = b.getLocation().distanceSquared(c) > 144;
+                    boolean distinct = logs.stream().noneMatch(o -> o.getLocation().distanceSquared(b.getLocation()) < 36);
+                    if (far && distinct) logs.add(b);
                     break;
                 }
             }
         }
-        if (log == null) return false;
-        // Flood fill por toras e folhas conectadas
-        Set<Block> seen = new HashSet<>();
-        ArrayDeque<Block> todo = new ArrayDeque<>();
-        todo.add(log);
-        seen.add(log);
-        List<Block> leaves = new ArrayList<>();
-        while (!todo.isEmpty() && seen.size() < 600) {
-            Block b = todo.poll();
-            for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) for (int dz = -1; dz <= 1; dz++) {
-                Block n = b.getRelative(dx, dy, dz);
-                if (Math.abs(n.getX() - log.getX()) > 8 || Math.abs(n.getZ() - log.getZ()) > 8) continue;
-                if (!seen.add(n)) continue;
-                if (Tag.LEAVES.isTagged(n.getType())) {
-                    leaves.add(n);
-                    todo.add(n);
-                } else if (Tag.LOGS.isTagged(n.getType())) {
-                    todo.add(n);
+        if (logs.isEmpty()) return false;
+        boolean any = false;
+        for (Block log : logs) {
+            Set<Block> seen = new HashSet<>();
+            ArrayDeque<Block> todo = new ArrayDeque<>();
+            todo.add(log);
+            seen.add(log);
+            List<Block> leaves = new ArrayList<>();
+            while (!todo.isEmpty() && seen.size() < 600) {
+                Block b = todo.poll();
+                for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) for (int dz = -1; dz <= 1; dz++) {
+                    Block n = b.getRelative(dx, dy, dz);
+                    if (Math.abs(n.getX() - log.getX()) > 8 || Math.abs(n.getZ() - log.getZ()) > 8) continue;
+                    if (!seen.add(n)) continue;
+                    if (Tag.LEAVES.isTagged(n.getType())) {
+                        leaves.add(n);
+                        todo.add(n);
+                    } else if (Tag.LOGS.isTagged(n.getType())) {
+                        todo.add(n);
+                    }
                 }
             }
+            for (Block l : leaves) plugin.blockQueue().set(l, Material.AIR);
+            any |= !leaves.isEmpty();
         }
-        if (leaves.isEmpty()) return false;
-        for (Block l : leaves) plugin.blockQueue().set(l, Material.AIR);
-        return true;
+        return any;
     }
 
     private static boolean tunnel(HerobrinePlugin plugin, Player p) {
@@ -319,6 +363,13 @@ public final class Events {
             }
             if (carve.size() < 12) continue;
             for (Block b : carve) plugin.blockQueue().set(b, Material.AIR);
+            // luz fraca: uma tocha de redstone a cada poucos blocos, no chão do corredor
+            for (int i = 0; i < carve.size(); i += 10) {
+                Block floorTorch = carve.get(i);
+                if (floorTorch.getRelative(BlockFace.DOWN).isSolid()) {
+                    plugin.blockQueue().set(floorTorch, Material.REDSTONE_TORCH);
+                }
+            }
             return true;
         }
         return false;
@@ -378,25 +429,6 @@ public final class Events {
         return null;
     }
 
-    private static boolean cross(HerobrinePlugin plugin, Player p) {
-        Location f = groundNear(p, 16, 34);
-        if (f == null) return false;
-        Material under = f.clone().subtract(0, 1, 0).getBlock().getType();
-        if (under != Material.GRASS_BLOCK && under != Material.DIRT && under != Material.PODZOL) return false;
-        Block base = f.getBlock();
-        for (int i = 0; i < 4; i++) {
-            if (!Util.free(base.getRelative(0, i, 0))) return false;
-        }
-        for (int i = 0; i < 4; i++) plugin.blockQueue().set(base.getRelative(0, i, 0), Material.OAK_LOG);
-        int[][] arms = {{1, 0}, {-1, 0}};
-        boolean alongX = Util.rng().nextBoolean();
-        for (int[] a : arms) {
-            Block arm = base.getRelative(alongX ? a[0] : a[1], 2, alongX ? a[1] : a[0]);
-            if (Util.free(arm)) plugin.blockQueue().set(arm, Material.OAK_LOG);
-        }
-        plugin.blockQueue().set(base.getRelative(0, 4, 0), Material.REDSTONE_TORCH);
-        return true;
-    }
 
     private static boolean netherrackFire(HerobrinePlugin plugin, Player p) {
         Location f = groundNear(p, 15, 32);
@@ -414,23 +446,6 @@ public final class Events {
         return true;
     }
 
-    private static boolean pyramid(HerobrinePlugin plugin, Player p) {
-        Location f = groundNear(p, 24, 40);
-        if (f == null) return false;
-        int size = 7;
-        Block origin = f.getBlock().getRelative(-size / 2, 0, -size / 2);
-        for (int x = 0; x < size; x++) for (int z = 0; z < size; z++) {
-            Block b = origin.getRelative(x, 0, z);
-            if (!Util.free(b) || !b.getRelative(BlockFace.DOWN).isSolid()) return false; // terreno precisa ser plano
-        }
-        for (int layer = 0; layer < 4; layer++) {
-            for (int x = layer; x < size - layer; x++) for (int z = layer; z < size - layer; z++) {
-                plugin.blockQueue().set(origin.getRelative(x, layer, z), Material.SANDSTONE);
-            }
-        }
-        plugin.blockQueue().set(origin.getRelative(size / 2, 4, size / 2), Material.REDSTONE_TORCH);
-        return true;
-    }
 
     private static boolean storm(HerobrinePlugin plugin, Player p) {
         World w = p.getWorld();

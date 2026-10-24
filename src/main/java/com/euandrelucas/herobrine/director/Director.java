@@ -61,7 +61,8 @@ public final class Director {
     private boolean eligible(Player p) {
         if (p.hasPermission("herobrine.bypass")) return false;
         if (p.getGameMode() == GameMode.SPECTATOR || p.getGameMode() == GameMode.CREATIVE) return false;
-        return !plugin.getConfig().getStringList("disabled-worlds").contains(p.getWorld().getName());
+        if (plugin.getConfig().getStringList("disabled-worlds").contains(p.getWorld().getName())) return false;
+        return plugin.worldState().active(p.getWorld());
     }
 
     private void tick() {

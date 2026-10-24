@@ -4,9 +4,15 @@ import com.euandrelucas.herobrine.apparition.Apparitions;
 import com.euandrelucas.herobrine.command.HerobrineCommand;
 import com.euandrelucas.herobrine.director.Director;
 import com.euandrelucas.herobrine.director.Presence;
+import com.euandrelucas.herobrine.item.ItemListener;
+import com.euandrelucas.herobrine.item.Items;
 import com.euandrelucas.herobrine.listener.AltarListener;
 import com.euandrelucas.herobrine.listener.PlayerListener;
+import com.euandrelucas.herobrine.mob.Infected;
+import com.euandrelucas.herobrine.survivor.Survivors;
 import com.euandrelucas.herobrine.util.BlockQueue;
+import com.euandrelucas.herobrine.world.FakeBlocks;
+import com.euandrelucas.herobrine.world.WorldState;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -16,6 +22,11 @@ public final class HerobrinePlugin extends JavaPlugin {
     private BlockQueue blockQueue;
     private Apparitions apparitions;
     private Director director;
+    private Items items;
+    private FakeBlocks fakeBlocks;
+    private WorldState worldState;
+    private Infected infected;
+    private Survivors survivors;
 
     @Override
     public void onEnable() {
@@ -29,12 +40,22 @@ public final class HerobrinePlugin extends JavaPlugin {
 
         saveDefaultConfig();
         presence = new Presence(this);
+        worldState = new WorldState(this);
+        fakeBlocks = new FakeBlocks(this);
+        items = new Items(this);
+        items.registerRecipes();
+        infected = new Infected(this);
+        survivors = new Survivors(this);
         blockQueue = new BlockQueue(this);
         apparitions = new Apparitions(this);
         director = new Director(this);
 
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         getServer().getPluginManager().registerEvents(new AltarListener(this), this);
+        getServer().getPluginManager().registerEvents(fakeBlocks, this);
+        getServer().getPluginManager().registerEvents(new ItemListener(this), this);
+        getServer().getPluginManager().registerEvents(infected, this);
+        getServer().getPluginManager().registerEvents(survivors, this);
 
         PluginCommand cmd = getCommand("herobrine");
         if (cmd != null) {
@@ -44,6 +65,7 @@ public final class HerobrinePlugin extends JavaPlugin {
         }
 
         apparitions.start();
+        infected.start();
         director.start();
         getLogger().info("Herobrine " + getPluginMeta().getVersion() + " ativo.");
     }
@@ -51,6 +73,8 @@ public final class HerobrinePlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (director != null) director.stop();
+        if (infected != null) infected.stop();
+        if (items != null) items.unregisterRecipes();
         if (apparitions != null) apparitions.removeAll();
         if (blockQueue != null) blockQueue.stop();
     }
@@ -67,4 +91,9 @@ public final class HerobrinePlugin extends JavaPlugin {
     public BlockQueue blockQueue() { return blockQueue; }
     public Apparitions apparitions() { return apparitions; }
     public Director director() { return director; }
+    public Items items() { return items; }
+    public FakeBlocks fakeBlocks() { return fakeBlocks; }
+    public WorldState worldState() { return worldState; }
+    public Infected infected() { return infected; }
+    public Survivors survivors() { return survivors; }
 }

@@ -1,82 +1,142 @@
 # Herobrine 2.0 - configuração
 # A "presença" (0-100) de cada jogador sobe com o tempo jogado e com o que ele faz.
-# O jogador nunca vê esse número. Quanto maior, mais intensos os eventos.
+# O jogador nunca vê esse número. Fases: 0 (<15) sons e recados | 1 (<35) avistamentos e mundo alterado
+# | 2 (<55) estruturas, stalking | 3 (<75) perseguições | 4 (75+) encontros diretos e chefe.
 
 debug: false
 disabled-worlds: [world_the_end]
+
+# Desative para tirar todos os sustos de tela (jumpscares).
+jumpscares: true
+
+# Estilo "Herobrine Always Spawns": false = ele já está no mundo (padrão).
+# true = o mundo só é afetado depois que alguém o desperta com um Diamante Amaldiçoado no altar.
+summon:
+  required: false
 
 # Skin do Herobrine (entidade Mannequin, exige Paper 1.21.9+).
 # Deixe texture-value vazio para usar a skin da conta 'name'.
 # Para olhos brancos, cole o value/signature de uma skin assinada (mineskin.org).
 skin:
   name: "Herobrine"
-  texture-value: "ewogICJ0aW1lc3RhbXAiIDogMTc0MzE0OTc0NDIzNywKICAicHJvZmlsZUlkIiA6ICJhNzdkNmQ2YmFjOWE0NzY3YTFhNzU1NjYxOTllYmY5MiIsCiAgInByb2ZpbGVOYW1lIiA6ICIwOEJFRDUiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGRjNjJkMDlmYTI2YTIyY2Q2NTQxZTk3ZTA2MTRmMDgxNDdjMGM1YWY0ZTQzMzc3NjdmMzExOGZhZDI4MTE5NiIKICAgIH0sCiAgICAiQ0FQRSIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMWRlMjE0MTkwMDlkYjQ4MzkwMGRhNjI5OGExZTZjYmY5ZjFiYzE1MjNhMGRjZGMxNjI2M2ZhYjE1MDY5M2VkZCIKICAgIH0KICB9Cn0="
-  texture-signature: "B5dNupxsc2ZXXqE769qhHJMHXMJev4zzfbGP5BEy1+H3/irDcUvTG8+vBnwJfPONlApiWw3vBNk7S6Z/Kv94/aJ9KxEjuggemZkjSRHMVsI7UaWN9J/MrHjyHK+GLfOY55GxSoilFJl8F/VTbFAlXq3bdmyt18nAhZ0FE8KcEswfQHb60xJ7fArfl/PZm/IryEYkHmYEaEsyfLG5pCE4nvoXqXMlEaAk7dc6LGqnn802dFH49yQebC+HEH0wGJ78WbRcExipRHUarMOI4QC7xHbrXIocdtKNUoou+9pMoiYJOgXv0txM8k9b6PJGlbLgo84qS3P+oLbUMvIKrHG/XPvM4UzQff9ZFZDfr5vY2QObA2oFmAWo7yggLNVcdhP7M8JTbjmy4gRZdj7GbMH6+d1UamVvdFKO3+NKMjayNF4RLTEEVMvNJLGx9tuuO1rpFjw86jXkH6Cu2H6YH+NImtXp0DRMG6U84d6alrbqvV8TZPaCWH0sJ3kezsqM4c9gGQuWp14Qz5DgzHORop13gJZLcAKx12KXdaOLWHXXnt3kkAV6EDlfJcgiGIjoTXlllORK+gvZvHyYsahTAAsYHHk4e/tytCCMDFi7XgTb2Vv0sF8ULoXz9Tl+bmjPivVbAlT6zFl3sUzZobRAolE8MwC//U541wxxMfXXWSyBVR4="
+  texture-value: ""
+  texture-signature: ""
 
 director:
-  # Segundos entre decisões do diretor, por jogador.
-  tick-seconds: 20
-  # Chance base de algo acontecer a cada decisão (multiplicada pela presença).
-  base-chance: 0.35
-  # Segundos mínimos entre dois eventos para o mesmo jogador.
+  tick-seconds: 20          # segundos entre decisões, por jogador
+  base-chance: 0.35         # chance base por decisão (multiplicada pela presença)
   event-cooldown-seconds: 90
-  # Tempo sem eventos no primeiro login (minutos): dá um respiro no início.
-  grace-minutes: 10
+  grace-minutes: 10         # respiro no começo da sessão
 
 presence:
-  # Pontos ganhos por minuto jogado.
   per-minute: 0.35
-  # Perda por minuto sem jogar eventos (decaimento só offline/ao relogar).
   offline-decay-per-hour: 1.0
-  # Pontos extras por comportamento
   mining-underground-per-100-blocks: 1.5
   night-indoors-per-minute: 0.5
   sleep: 2.0
   seen-bonus: 1.0
 
-# Quais eventos podem acontecer (true/false) e peso base.
+# Lista completa de eventos. enabled liga/desliga, weight é o peso base do sorteio.
 events:
-  sounds:        { enabled: true, weight: 30 }
-  footsteps:     { enabled: true, weight: 14 }
-  fake-join:     { enabled: true, weight: 4 }
-  animals-stare: { enabled: true, weight: 10 }
-  extinguish:    { enabled: true, weight: 10 }
-  doors:         { enabled: true, weight: 8 }
-  sighting:      { enabled: true, weight: 22 }
-  window:        { enabled: true, weight: 12 }
-  strip-tree:    { enabled: true, weight: 8 }
-  sign:          { enabled: true, weight: 6 }
-  tunnel:        { enabled: true, weight: 8 }
-  cross:         { enabled: true, weight: 4 }
-  netherrack-fire: { enabled: true, weight: 4 }
-  pyramid:       { enabled: true, weight: 3 }
-  storm:         { enabled: true, weight: 4 }
-  stalk:         { enabled: true, weight: 8 }
-  chase:         { enabled: true, weight: 6 }
-  hostile:       { enabled: false, weight: 2 }
+  sounds:           { enabled: true, weight: 30 }
+  fake-chat:        { enabled: true, weight: 14 }
+  redstone-under:   { enabled: true, weight: 6 }
+  footsteps:        { enabled: true, weight: 14 }
+  mossy-pyramid:    { enabled: true, weight: 4 }
+  creeper-hiss:     { enabled: true, weight: 8 }
+  animals-stare:    { enabled: true, weight: 10 }
+  sighting:         { enabled: true, weight: 22 }
+  bedrock-cross:    { enabled: true, weight: 4 }
+  monument:         { enabled: true, weight: 4 }
+  survivor-base:    { enabled: true, weight: 2 }
+  extinguish:       { enabled: true, weight: 10 }
+  doors:            { enabled: true, weight: 8 }
+  title-who:        { enabled: true, weight: 5 }
+  fake-logs:        { enabled: true, weight: 6 }
+  chest-hi:         { enabled: true, weight: 3 }
+  window:           { enabled: true, weight: 12 }
+  strip-tree:       { enabled: true, weight: 8 }
+  greet:            { enabled: true, weight: 4 }
+  floating-bedrock: { enabled: true, weight: 3 }
+  tunnel:           { enabled: true, weight: 8 }
+  infect-animals:   { enabled: true, weight: 6 }
+  fake-diamond:     { enabled: true, weight: 4 }
+  flash:            { enabled: true, weight: 8 }
+  ruined-shrine:    { enabled: true, weight: 2 }
+  sign:             { enabled: true, weight: 6 }
+  fake-join:        { enabled: true, weight: 4 }
+  sky-stalker:      { enabled: true, weight: 5 }
+  action-music:     { enabled: true, weight: 3 }
+  trapped-house:    { enabled: true, weight: 2 }  # TNT sob placa de pressão: pode destruir parte do terreno
+  storm:            { enabled: true, weight: 4 }
+  weeping:          { enabled: true, weight: 6 }
+  random-damage:    { enabled: true, weight: 3 }
+  statue:           { enabled: true, weight: 3 }
+  cross:            { enabled: true, weight: 4 }
+  netherrack-fire:  { enabled: true, weight: 4 }
+  cursed-forest:    { enabled: true, weight: 3 }
+  stalk:            { enabled: true, weight: 8 }
+  letters:          { enabled: true, weight: 2 }
+  sand-pyramid:     { enabled: true, weight: 3 }
+  title-hide:       { enabled: true, weight: 4 }
+  fake-shutdown:    { enabled: true, weight: 3 }
+  scream:           { enabled: true, weight: 4 }
+  gl-errors:        { enabled: true, weight: 3 }
+  circle:           { enabled: true, weight: 4 }
+  chase:            { enabled: true, weight: 6 }
+  knockback:        { enabled: true, weight: 4 }
+  mage:             { enabled: true, weight: 3 }
+  title-leave:      { enabled: true, weight: 3 }
+  hostile:          { enabled: false, weight: 2 }   # Guerreiro/Caçador em combate (desligado por padrão)
 
-# Máximo de blocos que as alterações de mundo mexem por tick.
 world-edit:
   blocks-per-tick: 40
 
-# Combate (só ocorre se events.hostile.enabled ou ao invocar pelo altar).
+builder:
+  enabled: true        # Herobrine visível construindo estruturas
+  min-presence: 45
+
 hostile:
   health: 200
   damage: 5.0
   duration-seconds: 45
+  break-blocks: true   # quebra blocos para alcançar o jogador
+
+mage:
+  health: 60
+
+boss:
+  health: 300
+  damage: 8.0
+  tnt: false           # TNT na fase final (destrói blocos)
+
+possessed-monsters:
+  chance: 0.05
+  health-multiplier: 1.5
+  damage-multiplier: 1.3
 
 altar:
   enabled: true
-  # Base 3x3 de blocos de ouro, netherrack no centro, 4 tochas de redstone e fogo em cima.
   lightning: true
+  boss-min-presence: 0   # presença mínima para o fogo invocar o chefe
+
+fake:
+  kick-on-ignore: false  # expulsa quem ignora o falso "Herobrine joined the game"
 
 messages:
   fake-join: "§e{name} entrou no jogo"
+  fake-errors:
+    - "§cUnable to remove entity 'Herobrine' (uuid not found)"
+    - "§c[Server] Entity 303 is not a valid target"
+    - "§cCannot unload chunk: Herobrine is still watching"
+  fake-logs:
+    - "§7[Render thread/WARN]: Missing sound for event: entity.herobrine.ambient"
+    - "§7[Server thread/INFO]: Starting integrated server on port 25565 (local)"
+    - "§7[Render thread/WARN]: Ignoring unknown entity 'herobrine:watcher'"
   sign-lines:
     - ["ESTOU", "AQUI", "", ""]
     - ["ATRAS", "DE VOCE", "", ""]
     - ["VOCE", "NAO", "ESTA", "SOZINHO"]
     - ["PARE", "DE", "CAVAR", ""]
     - ["EU", "VI", "VOCE", "DORMIR"]
-  scare-title: "§4§l"
-  scare-subtitle: "§c"
+    - ["SAIA", "", "", ""]
